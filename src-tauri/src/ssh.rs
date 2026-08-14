@@ -2,12 +2,12 @@ use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use serde::Serialize;
 use ssh2::{Channel, Session, Sftp};
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::sync::mpsc::{channel as mpsc_channel, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 
 use crate::logger;
@@ -134,6 +134,8 @@ pub fn open(
     channel
         .shell()
         .map_err(|e| format!("启动远程 shell 失败: {e}"))?;
+    // 切换为非阻塞模式：读线程轮询（WouldBlock 时释放锁），写方向可随时插入，避免读写互斥卡死
+    session.set_blocking(false);
 
     let sid = uuid::Uuid::new_v4().to_string();
     let app2 = app.clone();
@@ -141,10 +143,13 @@ pub fn open(
     let session_shared = Arc::new(Mutex::new(session));
     let channel_shared = Arc::new(Mutex::new(channel));
     let channel_reader = channel_shared.clone();
+    let session_keepalive = session_shared.clone();
+    let keepalive_interval = conn.options.keep_alive_interval.max(10);
 
-    // 后台读线程：推送终端输出
+    // 后台读线程：非阻塞轮询推送终端输出；空闲时定期发送 keepalive
     std::thread::spawn(move || {
         let mut buf = [0u8; READ_BUF];
+        let mut last_keepalive = Instant::now();
         loop {
             let mut ch = match channel_reader.lock() {
                 Ok(g) => g,
@@ -163,6 +168,10 @@ pub fn open(
                         },
                     );
                 }
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    // 无数据可读：释放锁，让写方向可以插入
+                    drop(ch);
+                }
                 Err(e) => {
                     drop(ch);
                     let msg = format!("{e}");
@@ -178,6 +187,14 @@ pub fn open(
                     break;
                 }
             }
+            // 空闲时发送 keepalive（libssh2 需要主动调用才会发包）
+            if last_keepalive.elapsed().as_secs() >= keepalive_interval {
+                if let Ok(sess) = session_keepalive.try_lock() {
+                    let _ = sess.keepalive_send();
+                }
+                last_keepalive = Instant::now();
+            }
+            std::thread::sleep(Duration::from_millis(10));
         }
         emit(&app2, "term:exit", TermExit { session_id: sid2, code: 0 });
     });
@@ -409,15 +426,35 @@ pub fn write_input(mgr: &SessionManager, sid: &str, data: &str) -> Result<(), St
     let ls = ls.lock().unwrap();
     match &ls.kind {
         SessionKind::Ssh(ssh) => {
-            let mut ch = ssh.channel.lock().unwrap();
-            ch.write_all(&decoded).map_err(|e| format!("写入失败: {e}"))?;
-            ch.flush().ok();
+            let mut remaining = decoded.as_slice();
+            while !remaining.is_empty() {
+                let mut ch = match ssh.channel.lock() {
+                    Ok(g) => g,
+                    Err(_) => return Err("会话锁已损坏".into()),
+                };
+                match ch.write(remaining) {
+                    Ok(0) => return Err("写入 0 字节".into()),
+                    Ok(n) => {
+                        remaining = &remaining[n..];
+                    }
+                    Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        // 发送窗口满：释放锁稍等重试，避免饿死读线程
+                        drop(ch);
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                    Err(e) => return Err(format!("写入失败: {e}")),
+                }
+            }
+            if let Ok(mut ch) = ssh.channel.try_lock() {
+                ch.flush().ok();
+            }
+            Ok(())
         }
         SessionKind::Echo { tx } => {
             tx.send(data.to_string()).map_err(|e| format!("写入失败: {e}"))?;
+            Ok(())
         }
     }
-    Ok(())
 }
 
 /// 前端 → 后端：终端窗口尺寸变化。
@@ -427,8 +464,8 @@ pub fn resize(mgr: &SessionManager, sid: &str, cols: u32, rows: u32) -> Result<(
     let ls = ls.lock().unwrap();
     if let SessionKind::Ssh(ssh) = &ls.kind {
         let mut ch = ssh.channel.lock().unwrap();
-        ch.request_pty_size(cols, rows, None, None)
-            .map_err(|e| format!("调整终端尺寸失败: {e}"))?;
+        // 非阻塞下可能 WouldBlock，忽略；前端 fit 会再次触发尺寸同步
+        let _ = ch.request_pty_size(cols, rows, None, None);
     }
     Ok(())
 }

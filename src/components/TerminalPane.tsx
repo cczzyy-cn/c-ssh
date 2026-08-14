@@ -39,6 +39,7 @@ export default function TerminalPane({ tab }: { tab: Tab }) {
     term.loadAddon(new WebLinksAddon());
     term.open(el);
     fit.fit();
+    term.focus(); // 连接成功后自动聚焦输入
 
     useTabs.getState().registerTerminal(tab.id, term);
 
