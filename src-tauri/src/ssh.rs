@@ -367,9 +367,11 @@ fn http_connect(
 fn authenticate(session: &mut Session, conn: &ConnectionConfig, store: &Store) -> Result<(), String> {
     match conn.auth.auth_type.as_str() {
         "password" => {
-            let pass = store
-                .load_secret(&conn.id)
-                .map_err(|_| "未设置密码，请编辑连接并填写密码".to_string())?;
+            let pass = store.load_secret(&conn.id).map_err(|e| {
+                format!(
+                    "读取密码失败（请重新编辑连接并填写密码）: {e}"
+                )
+            })?;
             session
                 .userauth_password(&conn.username, &pass)
                 .map_err(|e| format!("密码认证失败: {e}"))
