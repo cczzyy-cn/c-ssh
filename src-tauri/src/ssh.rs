@@ -671,10 +671,39 @@ fn sftp_do<T>(
     result
 }
 
+/// 规范化 SFTP 路径：反斜杠→正斜杠、盘符前加 /、去重斜杠、补前导 /。
+fn normalize_sftp_path(p: &str) -> String {
+    let mut s = p.trim().replace('\\', "/");
+    if s.is_empty() {
+        return "/".into();
+    }
+    // 盘符格式 C:/... → /C:/...
+    if let Some((drive, rest)) = s.split_once(':') {
+        if drive.len() == 1 && drive.chars().all(|c| c.is_ascii_alphabetic()) {
+            s = format!("/{drive}:{rest}");
+        }
+    }
+    // 去重连续斜杠
+    let mut out = String::with_capacity(s.len() + 1);
+    let mut prev = '\0';
+    for c in s.chars() {
+        if c == '/' && prev == '/' {
+            continue;
+        }
+        out.push(c);
+        prev = c;
+    }
+    if !out.starts_with('/') {
+        out.insert(0, '/');
+    }
+    out
+}
+
 pub fn sftp_list(mgr: &SessionManager, sid: &str, path: &str) -> Result<Vec<SftpEntry>, String> {
+    let path = normalize_sftp_path(path);
     sftp_do(mgr, sid, |sftp| {
         let entries = sftp
-            .readdir(Path::new(path))
+            .readdir(Path::new(&path))
             .map_err(|e| format!("读取目录失败: {e}"))?;
         let mut out = Vec::with_capacity(entries.len());
         for (p, stat) in entries {
@@ -696,9 +725,10 @@ pub fn sftp_download(
     remote_path: &str,
     local_path: &str,
 ) -> Result<(), String> {
+    let remote_path = normalize_sftp_path(remote_path);
     sftp_do(mgr, sid, |sftp| {
         let mut remote = sftp
-            .open(Path::new(remote_path))
+            .open(Path::new(&remote_path))
             .map_err(|e| format!("打开远程文件失败: {e}"))?;
         let mut buf = Vec::new();
         remote
@@ -715,9 +745,10 @@ pub fn sftp_upload(
     remote_path: &str,
 ) -> Result<(), String> {
     let data = std::fs::read(local_path).map_err(|e| format!("读取本地文件失败: {e}"))?;
+    let remote_path = normalize_sftp_path(remote_path);
     sftp_do(mgr, sid, |sftp| {
         let mut remote = sftp
-            .create(Path::new(remote_path))
+            .create(Path::new(&remote_path))
             .map_err(|e| format!("创建远程文件失败: {e}"))?;
         remote
             .write_all(&data)
@@ -727,20 +758,38 @@ pub fn sftp_upload(
 }
 
 pub fn sftp_mkdir(mgr: &SessionManager, sid: &str, path: &str) -> Result<(), String> {
+    let path = normalize_sftp_path(path);
     sftp_do(mgr, sid, |sftp| {
-        sftp.mkdir(Path::new(path), 0o755)
+        sftp.mkdir(Path::new(&path), 0o755)
             .map_err(|e| format!("创建目录失败: {e}"))
     })
 }
 
 pub fn sftp_delete(mgr: &SessionManager, sid: &str, path: &str, is_dir: bool) -> Result<(), String> {
+    let path = normalize_sftp_path(path);
     sftp_do(mgr, sid, |sftp| {
         if is_dir {
-            sftp.rmdir(Path::new(path)).map_err(|e| format!("删除目录失败: {e}"))
+            sftp.rmdir(Path::new(&path)).map_err(|e| format!("删除目录失败: {e}"))
         } else {
-            sftp.unlink(Path::new(path)).map_err(|e| format!("删除文件失败: {e}"))
+            sftp.unlink(Path::new(&path)).map_err(|e| format!("删除文件失败: {e}"))
         }
     })
+}
+
+#[cfg(test)]
+mod sftp_path_tests {
+    use super::normalize_sftp_path;
+
+    #[test]
+    fn normalizes_windows_and_unix_paths() {
+        assert_eq!(normalize_sftp_path(r"C:\Users\x"), "/C:/Users/x");
+        assert_eq!(normalize_sftp_path("C:/Users/x"), "/C:/Users/x");
+        assert_eq!(normalize_sftp_path("/C:/Users/x"), "/C:/Users/x");
+        assert_eq!(normalize_sftp_path("//C:////Users/x"), "/C:/Users/x");
+        assert_eq!(normalize_sftp_path("Users/x"), "/Users/x");
+        assert_eq!(normalize_sftp_path(""), "/");
+        assert_eq!(normalize_sftp_path("  /a/b  "), "/a/b");
+    }
 }
 
 fn expand_tilde(path: &str) -> String {

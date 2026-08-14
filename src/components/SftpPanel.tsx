@@ -20,6 +20,21 @@ function formatTime(secs: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** 规范化 SFTP 路径：反斜杠→正斜杠、盘符前加 /、去重斜杠、补前导 /。 */
+export function normalizeSftpPath(p: string): string {
+  let s = p.trim().replace(/\\/g, "/");
+  if (/^[A-Za-z]:\//.test(s)) s = `/${s}`;
+  s = s.replace(/\/{2,}/g, "/");
+  return s.startsWith("/") ? s : `/${s}`;
+}
+
+/** 拼接当前路径与条目名（防反斜杠/重复斜杠）。 */
+function joinPath(base: string, name: string): string {
+  return normalizeSftpPath(
+    base === "/" ? `/${name}` : `${base}/${name}`,
+  );
+}
+
 export default function SftpPanel({ tab }: Props) {
   const [path, setPath] = useState("/");
   const [entries, setEntries] = useState<SftpEntry[]>([]);
@@ -49,7 +64,7 @@ export default function SftpPanel({ tab }: Props) {
   const parent = path === "/" ? null : path.replace(/\/[^/]*\/?$/, "") || "/";
 
   const handleOpen = (entry: SftpEntry) => {
-    if (entry.isDir) setPath(path === "/" ? `/${entry.name}` : `${path}/${entry.name}`);
+    if (entry.isDir) setPath(joinPath(path, entry.name));
   };
 
   const handleUpload = async () => {
@@ -63,7 +78,7 @@ export default function SftpPanel({ tab }: Props) {
     try {
       for (const f of files) {
         const name = f.split(/[\\/]/).pop() ?? "file";
-        const remote = path === "/" ? `/${name}` : `${path}/${name}`;
+        const remote = joinPath(path, name);
         await api.sftpUpload(tab.id, f, remote);
       }
       await refresh(path);
@@ -82,7 +97,7 @@ export default function SftpPanel({ tab }: Props) {
     if (!local || Array.isArray(local)) return;
     setBusy(true);
     try {
-      const remote = path === "/" ? `/${entry.name}` : `${path}/${entry.name}`;
+      const remote = joinPath(path, entry.name);
       await api.sftpDownload(tab.id, remote, local);
     } catch (e) {
       alert(`下载失败: ${e}`);
@@ -94,7 +109,7 @@ export default function SftpPanel({ tab }: Props) {
   const handleMkdir = async () => {
     const name = prompt("新建目录名称");
     if (!name) return;
-    const remote = path === "/" ? `/${name}` : `${path}/${name}`;
+    const remote = joinPath(path, name);
     try {
       await api.sftpMkdir(tab.id, remote);
       await refresh(path);
@@ -106,7 +121,7 @@ export default function SftpPanel({ tab }: Props) {
   const handleDelete = async (entry: SftpEntry) => {
     if (!confirm(`确定删除「${entry.name}」？`)) return;
     try {
-      const remote = path === "/" ? `/${entry.name}` : `${path}/${entry.name}`;
+      const remote = joinPath(path, entry.name);
       await api.sftpDelete(tab.id, remote, entry.isDir);
       await refresh(path);
     } catch (e) {
@@ -122,7 +137,17 @@ export default function SftpPanel({ tab }: Props) {
       </div>
       <div className="sftp-path">
         <button className="icon-btn" title="上级目录" disabled={!parent} onClick={() => parent && setPath(parent)}>↑</button>
-        <input value={path} onChange={(e) => setPath(e.target.value)} onKeyDown={(e) => e.key === "Enter" && refresh(path)} />
+        <input
+          value={path}
+          onChange={(e) => setPath(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const n = normalizeSftpPath(path);
+              setPath(n);
+              refresh(n);
+            }
+          }}
+        />
       </div>
       <div className="sftp-tools">
         <button className="btn btn-sm" onClick={handleUpload} disabled={busy}>↑ 上传</button>
