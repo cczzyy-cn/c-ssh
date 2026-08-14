@@ -7,8 +7,6 @@ use std::net::TcpStream;
 use std::path::Path;
 use std::sync::mpsc::{channel as mpsc_channel, Sender};
 use std::sync::{Arc, Mutex};
-use std::thread::JoinHandle;
-use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
 use crate::store::{ConnectionConfig, Store};
@@ -40,14 +38,13 @@ pub struct TermError {
 
 pub enum SessionKind {
     /// 真实 SSH 会话：channel 需加锁，读线程与 write/resize 并发访问。
-    Ssh { channel: Mutex<Channel> },
+    Ssh { channel: Arc<Mutex<Channel>> },
     /// 本地演示（echo）会话：无需网络，用于无服务器时验证终端链路。
     Echo { tx: Sender<String> },
 }
 
 pub struct LiveSession {
     pub kind: SessionKind,
-    pub thread: Option<JoinHandle<()>>,
 }
 
 #[derive(Default)]
@@ -67,7 +64,7 @@ pub fn open_echo(app: AppHandle, mgr: &SessionManager) -> Result<String, String>
     let (tx, rx) = mpsc_channel::<String>();
     let app2 = app.clone();
     let sid2 = sid.clone();
-    let handle = std::thread::spawn(move || {
+    std::thread::spawn(move || {
         while let Ok(line) = rx.recv() {
             let _ = app2.emit(
                 "term:data",
@@ -83,7 +80,6 @@ pub fn open_echo(app: AppHandle, mgr: &SessionManager) -> Result<String, String>
         sid.clone(),
         Arc::new(Mutex::new(LiveSession {
             kind: SessionKind::Echo { tx },
-            thread: Some(handle),
         })),
     );
     Ok(sid)
@@ -94,13 +90,12 @@ pub fn open(app: AppHandle, mgr: &SessionManager, store: &Store, conn: &Connecti
     let tcp = TcpStream::connect((conn.host.as_str(), conn.port))
         .map_err(|e| format!("连接 {}:{} 失败: {}", conn.host, conn.port, e))?;
     tcp.set_nodelay(true).ok();
-    // TCP keep-alive 驱动 keepAliveInterval 选项
-    tcp.set_keepalive(Some(Duration::from_secs(conn.options.keep_alive_interval.max(10))))
-        .map_err(|e| format!("设置 keep-alive 失败: {e}"))?;
 
     let mut session = Session::new().map_err(|e| format!("创建 SSH 会话失败: {e}"))?;
     session.set_tcp_stream(tcp);
     session.handshake().map_err(|e| format!("SSH 握手失败: {e}"))?;
+    // 应用层 keep-alive（libssh2），间隔来自连接配置
+    session.set_keepalive(false, conn.options.keep_alive_interval.max(10) as u32);
     authenticate(&mut session, conn, store)?;
     if !session.authenticated() {
         return Err("认证未完成".into());
@@ -110,16 +105,7 @@ pub fn open(app: AppHandle, mgr: &SessionManager, store: &Store, conn: &Connecti
         .channel_session()
         .map_err(|e| format!("打开 channel 失败: {e}"))?;
     channel
-        .request_pty(
-            true,
-            Some(&ssh2::Pty {
-                term: Some("xterm-256color".into()),
-                width: 120,
-                height: 30,
-                ..Default::default()
-            }),
-            None,
-        )
+        .request_pty("xterm-256color", None, Some((120, 30, 0, 0)))
         .map_err(|e| format!("请求 PTY 失败: {e}"))?;
     channel
         .shell()
@@ -131,14 +117,13 @@ pub fn open(app: AppHandle, mgr: &SessionManager, store: &Store, conn: &Connecti
     let channel_shared = Arc::new(Mutex::new(channel));
     let channel_reader = channel_shared.clone();
 
-    let handle = std::thread::spawn(move || {
+    let _handle = std::thread::spawn(move || {
         let mut buf = [0u8; READ_BUF];
         loop {
             let mut ch = match channel_reader.lock() {
                 Ok(g) => g,
                 Err(_) => break,
-            };
-            match ch.read(&mut buf) {
+            };            match ch.read(&mut buf) {
                 Ok(0) => break, // EOF
                 Ok(n) => {
                     drop(ch);
@@ -174,7 +159,6 @@ pub fn open(app: AppHandle, mgr: &SessionManager, store: &Store, conn: &Connecti
             kind: SessionKind::Ssh {
                 channel: channel_shared,
             },
-            thread: Some(handle),
         })),
     );
     Ok(sid)
@@ -253,7 +237,7 @@ pub fn resize(mgr: &SessionManager, sid: &str, cols: u32, rows: u32) -> Result<(
     let ls = ls.lock().unwrap();
     if let SessionKind::Ssh { channel } = &ls.kind {
         let mut ch = channel.lock().unwrap();
-        ch.window_change(rows, cols, 0, 0)
+        ch.request_pty_size(cols, rows, None, None)
             .map_err(|e| format!("调整终端尺寸失败: {e}"))?;
     }
     Ok(())
@@ -261,7 +245,7 @@ pub fn resize(mgr: &SessionManager, sid: &str, cols: u32, rows: u32) -> Result<(
 
 /// 关闭会话：尽力发送 EOF/close，读线程随即退出；不做 join 以避免与阻塞读互相等待。
 pub fn close_session(mgr: &SessionManager, sid: &str) -> Result<(), String> {
-    let map = mgr.sessions.lock().unwrap();
+    let mut map = mgr.sessions.lock().unwrap();
     if let Some(ls) = map.get(sid) {
         let ls = ls.lock().unwrap();
         if let SessionKind::Ssh { channel } = &ls.kind {
