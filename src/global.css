@@ -183,15 +183,19 @@ select {
 }
 
 .terminal-col {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   min-width: 0;
-  position: relative;
 }
 
 /* ---- SFTP 面板 ---- */
 .sftp-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
   width: 340px;
-  flex-shrink: 0;
+  z-index: 30;
   border-left: 1px solid var(--color-border);
   background: var(--color-bg-alt);
   display: flex;

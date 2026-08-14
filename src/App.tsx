@@ -57,16 +57,7 @@ export default function App() {
       <main className="main">
         <TabBar />
         <div className="terminal-area">
-          {activeTab ? (
-            <div className="terminal-row">
-              <div className="terminal-col">
-                <TerminalPane key={activeTab.id} tab={activeTab} />
-              </div>
-              {sftpOpen[activeTab.id] && activeTab.connId && (
-                <SftpPanel tab={activeTab} />
-              )}
-            </div>
-          ) : (
+          {tabs.length === 0 ? (
             <div className="empty-state">
               <div className="empty-title">c-ssh</div>
               <div className="empty-sub">
@@ -75,6 +66,22 @@ export default function App() {
                 或点击「演示终端」无需服务器体验。
               </div>
             </div>
+          ) : (
+            <>
+              {/* 所有 tab 的终端实例保活：切换标签不销毁，内容保留 */}
+              {tabs.map((t) => (
+                <div
+                  key={t.id}
+                  className="terminal-col"
+                  style={{ display: t.id === activeId ? undefined : "none" }}
+                >
+                  <TerminalPane tab={t} active={t.id === activeId} />
+                </div>
+              ))}
+              {activeTab?.connId && sftpOpen[activeTab.id] && (
+                <SftpPanel tab={activeTab} />
+              )}
+            </>
           )}
         </div>
       </main>

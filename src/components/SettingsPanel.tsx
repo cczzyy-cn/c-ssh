@@ -6,7 +6,8 @@ import { api } from "../ipc";
 import LogViewer from "./LogViewer";
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
-  const { mode, themeName, setMode, setThemeName } = useTheme();
+  const { mode, setMode, setThemeName } = useTheme();
+  const resolved = useTheme((s) => s.resolved);
   const { fontSize, setFontSize } = useSettings();
   const [logPath, setLogPath] = useState("");
   const [showLog, setShowLog] = useState(false);
@@ -49,7 +50,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               {BUILTIN_THEMES.map((t) => (
                 <div
                   key={t.name}
-                  className={`theme-card ${t.name === themeName ? "selected" : ""} ${t.type}`}
+                  className={`theme-card ${t.name === resolved.name ? "selected" : ""} ${t.type}`}
                   onClick={() => setThemeName(t.name)}
                 >
                   <div className="theme-swatches">

@@ -10,9 +10,10 @@ import { useTheme } from "../stores/theme";
 import { useSettings } from "../stores/settings";
 import { getTheme } from "../themes";
 
-export default function TerminalPane({ tab }: { tab: Tab }) {
+export default function TerminalPane({ tab, active }: { tab: Tab; active: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const fitRef = useRef<FitAddon | null>(null);
   const resolved = useTheme((s) => s.resolved);
   const fontSize = useSettings((s) => s.fontSize);
   const setFontSize = useSettings((s) => s.setFontSize);
@@ -37,9 +38,14 @@ export default function TerminalPane({ tab }: { tab: Tab }) {
     term.loadAddon(fit);
     term.loadAddon(search);
     term.loadAddon(new WebLinksAddon());
+    fitRef.current = fit;
     term.open(el);
-    fit.fit();
-    term.focus(); // 连接成功后自动聚焦输入
+    try {
+      fit.fit();
+    } catch {
+      /* 容器可能为 0 尺寸（后台标签），激活时再 fit */
+    }
+    if (active) term.focus(); // 连接成功后自动聚焦输入
 
     useTabs.getState().registerTerminal(tab.id, term);
 
@@ -97,11 +103,25 @@ export default function TerminalPane({ tab }: { tab: Tab }) {
       ro.disconnect();
       dataSub.dispose();
       resizeSub.dispose();
+      fitRef.current = null;
       useTabs.getState().unregisterTerminal(tab.id);
       term.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab.id]);
+
+  // 标签切换为激活时：重新适配尺寸并聚焦输入
+  useEffect(() => {
+    if (!active) return;
+    const term = useTabs.getState().terminals[tab.id];
+    if (!term) return;
+    try {
+      fitRef.current?.fit();
+    } catch {
+      /* ignore */
+    }
+    term.focus();
+  }, [tab.id, active]);
 
   // 字号变化
   useEffect(() => {
@@ -109,11 +129,16 @@ export default function TerminalPane({ tab }: { tab: Tab }) {
     if (term) term.options.fontSize = fontSize;
   }, [tab.id, fontSize]);
 
-  // 主题变化时更新 xterm 配色
+  // 主题变化时更新 xterm 配色（强制重绘，避免背景/前景不刷新）
   useEffect(() => {
     const term = useTabs.getState().terminals[tab.id];
     if (term) {
       term.options.theme = terminalTheme;
+      try {
+        term.refresh(0, term.rows - 1);
+      } catch {
+        /* ignore */
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab.id, themeName]);
