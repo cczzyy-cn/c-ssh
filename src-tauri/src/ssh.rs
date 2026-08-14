@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel as mpsc_channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -61,6 +62,8 @@ pub struct SshSession {
     pub channel: Arc<Mutex<Channel>>,
     /// SFTP 句柄（懒创建：首次使用时初始化）。
     pub sftp: Arc<Mutex<Option<Sftp>>>,
+    /// SFTP 操作进行中标志：终端读/写线程让步，避免并发访问 libssh2 session。
+    pub sftp_busy: Arc<AtomicBool>,
 }
 
 pub struct LiveSession {
@@ -145,12 +148,19 @@ pub fn open(
     let channel_reader = channel_shared.clone();
     let session_keepalive = session_shared.clone();
     let keepalive_interval = conn.options.keep_alive_interval.max(10);
+    let sftp_busy = Arc::new(AtomicBool::new(false));
+    let reader_busy = sftp_busy.clone();
 
-    // 后台读线程：非阻塞轮询推送终端输出；空闲时定期发送 keepalive
+    // 后台读线程：非阻塞轮询推送终端输出；空闲时定期发送 keepalive；
+    // SFTP 操作期间让步（避免与 SFTP 并发访问 libssh2 session）。
     std::thread::spawn(move || {
         let mut buf = [0u8; READ_BUF];
         let mut last_keepalive = Instant::now();
         loop {
+            if reader_busy.load(Ordering::Relaxed) {
+                std::thread::sleep(Duration::from_millis(10));
+                continue;
+            }
             let mut ch = match channel_reader.lock() {
                 Ok(g) => g,
                 Err(_) => break,
@@ -209,6 +219,7 @@ pub fn open(
                 session: session_shared,
                 channel: channel_shared,
                 sftp: Arc::new(Mutex::new(None)),
+                sftp_busy,
             }),
         })),
     );
@@ -426,6 +437,12 @@ pub fn write_input(mgr: &SessionManager, sid: &str, data: &str) -> Result<(), St
     let ls = ls.lock().unwrap();
     match &ls.kind {
         SessionKind::Ssh(ssh) => {
+            // SFTP 操作期间等待其结束，避免并发访问 libssh2 session（最多等 5s）
+            let mut waited = 0u32;
+            while ssh.sftp_busy.load(Ordering::Relaxed) && waited < 1000 {
+                std::thread::sleep(Duration::from_millis(5));
+                waited += 1;
+            }
             let mut remaining = decoded.as_slice();
             while !remaining.is_empty() {
                 let mut ch = match ssh.channel.lock() {
@@ -463,6 +480,10 @@ pub fn resize(mgr: &SessionManager, sid: &str, cols: u32, rows: u32) -> Result<(
     let ls = map.get(sid).ok_or("会话不存在")?;
     let ls = ls.lock().unwrap();
     if let SessionKind::Ssh(ssh) = &ls.kind {
+        if ssh.sftp_busy.load(Ordering::Relaxed) {
+            // SFTP 操作中跳过尺寸同步，前端 fit 会再次触发
+            return Ok(());
+        }
         let mut ch = ssh.channel.lock().unwrap();
         // 非阻塞下可能 WouldBlock，忽略；前端 fit 会再次触发尺寸同步
         let _ = ch.request_pty_size(cols, rows, None, None);
@@ -613,41 +634,45 @@ pub struct SftpEntry {
     pub mtime: u64,
 }
 
-fn get_sftp(mgr: &SessionManager, sid: &str) -> Result<Arc<Mutex<Option<Sftp>>>, String> {
-    let map = mgr.sessions.lock().unwrap();
-    let ls = map.get(sid).ok_or("会话不存在")?;
-    let ls = ls.lock().unwrap();
-    match &ls.kind {
-        SessionKind::Ssh(ssh) => {
-            let mut guard = ssh.sftp.lock().unwrap();
-            if guard.is_none() {
-                let sftp = ssh
-                    .session
-                    .lock()
-                    .unwrap()
-                    .sftp()
-                    .map_err(|e| format!("初始化 SFTP 失败: {e}"))?;
-                *guard = Some(sftp);
-            }
-            Ok(ssh.sftp.clone())
-        }
-        SessionKind::Echo { .. } => Err("演示会话不支持 SFTP".into()),
-    }
-}
-
-fn with_sftp<T>(
+/// 执行 SFTP 操作：临时切回阻塞模式 + 持 session 锁（SFTP 握手与文件操作在
+/// 非阻塞模式下会返回 WouldBlock）；操作期间置 sftp_busy 让终端读写让步。
+fn sftp_do<T>(
     mgr: &SessionManager,
     sid: &str,
     f: impl FnOnce(&Sftp) -> Result<T, String>,
 ) -> Result<T, String> {
-    let handle = get_sftp(mgr, sid)?;
-    let guard = handle.lock().unwrap();
-    let sftp = guard.as_ref().ok_or("SFTP 未初始化")?;
-    f(sftp)
+    let map = mgr.sessions.lock().unwrap();
+    let ls = map.get(sid).ok_or("会话不存在")?;
+    let ls = ls.lock().unwrap();
+    let SessionKind::Ssh(ssh) = &ls.kind else {
+        return Err("演示会话不支持 SFTP".into());
+    };
+
+    let busy = ssh.sftp_busy.clone();
+    busy.store(true, Ordering::Relaxed);
+    let result = (|| {
+        let session = ssh.session.lock().unwrap();
+        session.set_blocking(true); // SFTP 需要阻塞模式完成握手/操作
+        let out = {
+            let mut guard = ssh.sftp.lock().unwrap();
+            if guard.is_none() {
+                let sftp = session
+                    .sftp()
+                    .map_err(|e| format!("初始化 SFTP 失败: {e}"))?;
+                *guard = Some(sftp);
+            }
+            let sftp = guard.as_ref().ok_or("SFTP 未初始化")?;
+            f(sftp)
+        };
+        session.set_blocking(false);
+        out
+    })();
+    busy.store(false, Ordering::Relaxed);
+    result
 }
 
 pub fn sftp_list(mgr: &SessionManager, sid: &str, path: &str) -> Result<Vec<SftpEntry>, String> {
-    with_sftp(mgr, sid, |sftp| {
+    sftp_do(mgr, sid, |sftp| {
         let entries = sftp
             .readdir(Path::new(path))
             .map_err(|e| format!("读取目录失败: {e}"))?;
@@ -671,7 +696,7 @@ pub fn sftp_download(
     remote_path: &str,
     local_path: &str,
 ) -> Result<(), String> {
-    with_sftp(mgr, sid, |sftp| {
+    sftp_do(mgr, sid, |sftp| {
         let mut remote = sftp
             .open(Path::new(remote_path))
             .map_err(|e| format!("打开远程文件失败: {e}"))?;
@@ -690,7 +715,7 @@ pub fn sftp_upload(
     remote_path: &str,
 ) -> Result<(), String> {
     let data = std::fs::read(local_path).map_err(|e| format!("读取本地文件失败: {e}"))?;
-    with_sftp(mgr, sid, |sftp| {
+    sftp_do(mgr, sid, |sftp| {
         let mut remote = sftp
             .create(Path::new(remote_path))
             .map_err(|e| format!("创建远程文件失败: {e}"))?;
@@ -702,14 +727,14 @@ pub fn sftp_upload(
 }
 
 pub fn sftp_mkdir(mgr: &SessionManager, sid: &str, path: &str) -> Result<(), String> {
-    with_sftp(mgr, sid, |sftp| {
+    sftp_do(mgr, sid, |sftp| {
         sftp.mkdir(Path::new(path), 0o755)
             .map_err(|e| format!("创建目录失败: {e}"))
     })
 }
 
 pub fn sftp_delete(mgr: &SessionManager, sid: &str, path: &str, is_dir: bool) -> Result<(), String> {
-    with_sftp(mgr, sid, |sftp| {
+    sftp_do(mgr, sid, |sftp| {
         if is_dir {
             sftp.rmdir(Path::new(path)).map_err(|e| format!("删除目录失败: {e}"))
         } else {
