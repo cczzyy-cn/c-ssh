@@ -1,0 +1,127 @@
+import { useMemo, useState } from "react";
+import { api } from "../ipc";
+import { useConnections } from "../stores/connections";
+import { openConnection, openEcho } from "../stores/tabs";
+import type { ConnectionConfig } from "../types";
+import ConnectionForm from "./ConnectionForm";
+import SettingsPanel from "./SettingsPanel";
+
+export default function Sidebar() {
+  const { connections, remove } = useConnections();
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState<ConnectionConfig | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const groups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = connections.filter(
+      (c) =>
+        !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.host.toLowerCase().includes(q) ||
+        c.username.toLowerCase().includes(q),
+    );
+    const map = new Map<string, ConnectionConfig[]>();
+    for (const c of filtered) {
+      const key = c.group || "默认";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(c);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [connections, query]);
+
+  const handleEdit = (conn: ConnectionConfig) => {
+    setEditing(conn);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (conn: ConnectionConfig) => {
+    if (confirm(`确定删除连接「${conn.name}」？`)) {
+      await remove(conn.id);
+    }
+  };
+
+  const handleTest = async (conn: ConnectionConfig) => {
+    try {
+      await api.testConnection(conn.id);
+      alert(`连接「${conn.name}」测试成功`);
+    } catch (e) {
+      alert(`连接测试失败: ${e}`);
+    }
+  };
+
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-header">
+        <span className="brand">c-ssh</span>
+        <button className="btn btn-primary btn-sm" onClick={() => { setEditing(null); setShowForm(true); }}>
+          + 新建
+        </button>
+      </div>
+
+      <input
+        className="search"
+        placeholder="搜索连接…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+
+      <div className="conn-list">
+        {groups.length === 0 && (
+          <div className="empty-hint">
+            {connections.length === 0 ? "还没有连接，点「+ 新建」添加" : "无匹配结果"}
+          </div>
+        )}
+        {groups.map(([group, items]) => (
+          <div key={group}>
+            <div className="group-title">{group}</div>
+            {items.map((c) => (
+              <div
+                key={c.id}
+                className="conn-item"
+                title={`${c.username}@${c.host}:${c.port}`}
+                onDoubleClick={() => openConnection(c)}
+              >
+                <div className="conn-item-main">
+                  <div className="conn-name">{c.name}</div>
+                  <div className="conn-sub">
+                    {c.username}@{c.host}
+                  </div>
+                </div>
+                <div className="conn-actions">
+                  <button className="icon-btn" title="测试连接" onClick={() => handleTest(c)}>
+                    ⚡
+                  </button>
+                  <button className="icon-btn" title="编辑" onClick={() => handleEdit(c)}>
+                    ✎
+                  </button>
+                  <button className="icon-btn" title="删除" onClick={() => handleDelete(c)}>
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="sidebar-footer">
+        <button className="btn btn-sm" onClick={() => openEcho().catch((e) => alert(e))}>
+          ▶ 演示终端
+        </button>
+        <button className="btn btn-sm" onClick={() => setShowSettings(true)}>
+          ⚙ 设置
+        </button>
+      </div>
+
+      {showForm && (
+        <ConnectionForm
+          conn={editing ?? undefined}
+          onClose={() => setShowForm(false)}
+        />
+      )}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+    </aside>
+  );
+}

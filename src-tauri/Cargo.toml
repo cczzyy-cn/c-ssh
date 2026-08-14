@@ -1,0 +1,28 @@
+[package]
+name = "c-ssh"
+version = "0.1.0"
+description = "轻量级跨平台 SSH 客户端"
+authors = ["c-ssh"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "c_ssh_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ssh2 = { version = "0.9", features = ["vendored-openssl"] }
+dirs = "6"
+keyring = "3"
+uuid = { version = "1", features = ["v4"] }
+base64 = "0.22"
