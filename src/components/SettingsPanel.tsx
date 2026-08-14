@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { BUILTIN_THEMES } from "../themes";
 import { useTheme, type ThemeMode } from "../stores/theme";
-import { useSettings } from "../stores/settings";
+import { useSettings, type WindowSize } from "../stores/settings";
 import { api } from "../ipc";
 import LogViewer from "./LogViewer";
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { mode, setMode, setThemeName } = useTheme();
   const resolved = useTheme((s) => s.resolved);
-  const { fontSize, setFontSize } = useSettings();
+  const { fontSize, setFontSize, windowSize, setWindowSize } = useSettings();
+  const [sizeInput, setSizeInput] = useState<WindowSize>(windowSize);
   const [logPath, setLogPath] = useState("");
   const [showLog, setShowLog] = useState(false);
 
@@ -33,6 +34,31 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               <button className="btn btn-sm" onClick={() => setFontSize(fontSize + 1)}>+</button>
             </div>
             <span className="hint">也可在终端内按 Ctrl+= / Ctrl+- 调整</span>
+          </label>
+
+          <label>
+            窗口大小（宽 × 高）
+            <div className="proxy-row">
+              <input
+                type="number"
+                value={sizeInput.width}
+                onChange={(e) => setSizeInput((s) => ({ ...s, width: Number(e.target.value) || 1100 }))}
+              />
+              <span className="size-x">×</span>
+              <input
+                type="number"
+                value={sizeInput.height}
+                onChange={(e) => setSizeInput((s) => ({ ...s, height: Number(e.target.value) || 700 }))}
+              />
+            </div>
+            <div className="log-actions" style={{ marginTop: 4 }}>
+              <button
+                className="btn btn-sm"
+                onClick={() => setWindowSize(sizeInput).catch((e) => alert(`调整失败: ${e}`))}
+              >
+                ✓ 应用窗口大小
+              </button>
+            </div>
           </label>
 
           <label>

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getTheme, type ThemeDef } from "../themes";
 
 export type ThemeMode = "dark" | "light" | "system";
@@ -46,9 +47,21 @@ function applyTheme(theme: ThemeDef) {
   }
 }
 
+/** 窗口标题栏明暗跟随主题（深色主题 → 深色标题栏，浅色 → 浅色）。 */
+function applyWindowTheme(theme: ThemeDef) {
+  getCurrentWindow()
+    .setTheme(theme.type === "dark" ? "dark" : "light")
+    .catch(() => undefined);
+}
+
+function applyBoth(theme: ThemeDef) {
+  applyTheme(theme);
+  applyWindowTheme(theme);
+}
+
 const persisted = loadPersisted();
 const initialResolved = resolve(persisted.mode, persisted.themeName);
-applyTheme(initialResolved);
+applyBoth(initialResolved);
 
 export const useTheme = create<ThemeState>((set, get) => ({
   mode: persisted.mode,
@@ -56,13 +69,13 @@ export const useTheme = create<ThemeState>((set, get) => ({
   resolved: initialResolved,
   setMode: (mode) => {
     const next = resolve(mode, get().themeName);
-    applyTheme(next);
+    applyBoth(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode, themeName: get().themeName }));
     set({ mode, resolved: next });
   },
   setThemeName: (name) => {
     const next = resolve(get().mode, name);
-    applyTheme(next);
+    applyBoth(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: get().mode, themeName: name }));
     set({ themeName: name, resolved: next });
   },
@@ -73,7 +86,7 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e)
   const { mode, themeName } = useTheme.getState();
   if (mode === "system") {
     const next = getTheme(e.matches ? "默认暗色" : "默认亮色");
-    applyTheme(next);
+    applyBoth(next);
     useTheme.setState({ resolved: next });
   }
   void themeName;

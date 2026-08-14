@@ -5,6 +5,7 @@ import TabBar from "./components/TabBar";
 import TerminalPane from "./components/TerminalPane";
 import { b64ToBytes, onTermEvent, type TermDataEvent, type TermErrorEvent, type TermExitEvent } from "./ipc";
 import { useConnections } from "./stores/connections";
+import { applyWindowSize, useSettings } from "./stores/settings";
 import { scheduleReconnect, useTabs } from "./stores/tabs";
 
 export default function App() {
@@ -15,6 +16,11 @@ export default function App() {
   useEffect(() => {
     load().catch((e) => console.error("加载连接失败:", e));
   }, [load]);
+
+  // 恢复持久化的窗口大小
+  useEffect(() => {
+    applyWindowSize(useSettings.getState().windowSize);
+  }, []);
 
   // 全局终端事件分发（注册一次）
   useEffect(() => {

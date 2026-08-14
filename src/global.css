@@ -622,6 +622,11 @@ select {
   flex: 0 0 80px;
 }
 
+.size-x {
+  align-self: center;
+  color: var(--color-fg-dim);
+}
+
 .form-grid textarea {
   padding: 6px 8px;
   background: var(--color-bg-input);
