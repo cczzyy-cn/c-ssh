@@ -6,6 +6,8 @@
 - 多标签终端：自适应窗口、实时同步远端尺寸
 - 主题系统：内置 8 套主题（One Dark / Dracula / Nord / Solarized / Gruvbox / 默认亮暗），
   亮 / 暗 / 跟随系统三档，支持连接级覆盖
+- 全局错误日志：Rust panic、IPC 命令错误、前端 JS 错误统一写入
+  `data_dir/c-ssh/logs/app.log`（设置 → 错误日志 → 打开日志目录；超过 1MB 轮转，不含密码/密钥）
 - 演示终端：无需服务器即可体验终端链路（echo 回显）
 
 ## 环境要求

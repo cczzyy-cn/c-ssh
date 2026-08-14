@@ -549,6 +549,16 @@ select {
   gap: 10px;
 }
 
+.log-path {
+  word-break: break-all;
+  margin: 2px 0 6px;
+}
+
+.log-actions {
+  display: flex;
+  gap: 6px;
+}
+
 .font-size-value {
   font-size: 13px;
   min-width: 48px;

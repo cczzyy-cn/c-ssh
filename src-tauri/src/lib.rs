@@ -1,9 +1,11 @@
 mod commands;
+mod logger;
 mod ssh;
 mod store;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    logger::init();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(store::Store::new())
@@ -26,6 +28,9 @@ pub fn run() {
             commands::sftp_upload,
             commands::sftp_mkdir,
             commands::sftp_delete,
+            commands::log_frontend_error,
+            commands::get_log_path,
+            commands::open_log_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

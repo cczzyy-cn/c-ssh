@@ -1,10 +1,17 @@
+import { useEffect, useState } from "react";
 import { BUILTIN_THEMES } from "../themes";
 import { useTheme, type ThemeMode } from "../stores/theme";
 import { useSettings } from "../stores/settings";
+import { api } from "../ipc";
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { mode, themeName, setMode, setThemeName } = useTheme();
   const { fontSize, setFontSize } = useSettings();
+  const [logPath, setLogPath] = useState("");
+
+  useEffect(() => {
+    api.getLogPath().then(setLogPath).catch(() => undefined);
+  }, []);
 
   return (
     <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -59,6 +66,18 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             <p className="hint">
               {mode === "system" ? "当前按系统亮暗自动选择" : mode === "dark" ? "深色模式：仅使用深色主题" : "浅色模式：仅使用浅色主题"}
             </p>
+          </div>
+
+          <div className="span-2">
+            <div className="group-title">错误日志</div>
+            <p className="hint log-path" title={logPath}>
+              日志文件：{logPath || "获取中…"}
+            </p>
+            <div className="log-actions">
+              <button className="btn btn-sm" onClick={() => api.openLogDir().catch((e) => alert(e))}>
+                📂 打开日志目录
+              </button>
+            </div>
           </div>
         </div>
       </div>

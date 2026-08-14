@@ -33,6 +33,10 @@ export const api = {
     invoke<void>("sftp_mkdir", { sessionId, path }),
   sftpDelete: (sessionId: string, path: string, isDir: boolean) =>
     invoke<void>("sftp_delete", { sessionId, path, isDir }),
+  logFrontendError: (source: string, message: string, stack?: string) =>
+    invoke<void>("log_frontend_error", { source, message, stack }),
+  getLogPath: () => invoke<string>("get_log_path"),
+  openLogDir: () => invoke<void>("open_log_dir"),
 };
 
 export interface SftpEntry {
