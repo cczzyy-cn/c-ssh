@@ -256,7 +256,10 @@ c-ssh/
 - 打包：`npm run tauri build` → Windows（NSIS/MSI）、macOS（dmg，需签名公证）、Linux（AppImage/deb）。
 - CI：GitHub Actions 三平台矩阵 + `tauri-action`，Rust 依赖缓存，产物上 Release。
 - 体积预期：安装包 ~10–15 MB（对比 Electron 同类 100 MB+）。
-- 已知编译注意点：`ssh2`（libssh2）在 Windows 需 `openssl` vendored 特性，`Cargo.toml` 中 `ssh2 = { version = "0.9", features = ["vendored-openssl"] }` 即可免系统依赖。
+- 已知编译注意点：
+  - `ssh2`（libssh2）依赖 `openssl-src` 从源码编译 OpenSSL，**需要完整的 Perl**。Windows 上 Git Bash 自带的 MSYS Perl 缺少模块会失败（报 `Can't locate Locale/Maketext/Simple.pm`），需安装 Strawberry Perl 并确保其 `perl` 在 PATH 最前：`winget install StrawberryPerl.StrawberryPerl`。
+  - `Cargo.toml` 中 `ssh2 = { version = "0.9", features = ["vendored-openssl"] }` 可免系统 OpenSSL 依赖。
+  - ssh2 0.9 API 与旧版不同：PTY 用 `channel.request_pty("xterm-256color", None, Some((w,h,0,0)))`，调整尺寸用 `channel.request_pty_size(cols, rows, None, None)`（无 `Pty` 结构体、无 `window_change`）；keep-alive 用 `session.set_keepalive(false, interval_secs)`（libssh2 应用层心跳，替代不稳定且平台相关的 TCP keepalive API）。
 
 ---
 
