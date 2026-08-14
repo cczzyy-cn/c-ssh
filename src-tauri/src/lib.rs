@@ -14,11 +14,18 @@ pub fn run() {
             commands::delete_connection,
             commands::set_secret,
             commands::test_connection,
+            commands::export_connections,
+            commands::import_connections,
             commands::open_session,
             commands::open_echo_session,
             commands::write_input,
             commands::resize,
             commands::close_session,
+            commands::sftp_list,
+            commands::sftp_download,
+            commands::sftp_upload,
+            commands::sftp_mkdir,
+            commands::sftp_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -8,6 +8,10 @@ export const api = {
     invoke<ConnectionConfig>("save_connection", { conn }),
   deleteConnection: (id: string) =>
     invoke<void>("delete_connection", { id }),
+  exportConnections: (path: string) =>
+    invoke<void>("export_connections", { path }),
+  importConnections: (path: string) =>
+    invoke<number>("import_connections", { path }),
   setSecret: (id: string, secret: string | null) =>
     invoke<void>("set_secret", { id, secret }),
   testConnection: (id: string) => invoke<void>("test_connection", { id }),

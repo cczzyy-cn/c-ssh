@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { api } from "../ipc";
 import { useConnections } from "../stores/connections";
 import { openConnection, openEcho } from "../stores/tabs";
@@ -7,7 +8,7 @@ import ConnectionForm from "./ConnectionForm";
 import SettingsPanel from "./SettingsPanel";
 
 export default function Sidebar() {
-  const { connections, remove } = useConnections();
+  const { connections, remove, load } = useConnections();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<ConnectionConfig | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -48,6 +49,37 @@ export default function Sidebar() {
       alert(`连接「${conn.name}」测试成功`);
     } catch (e) {
       alert(`连接测试失败: ${e}`);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const path = await save({
+        title: "导出连接配置",
+        defaultPath: "c-ssh-connections.json",
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!path) return;
+      await api.exportConnections(path);
+      alert("导出成功（凭据不随文件导出，需在新机器重新输入密码）");
+    } catch (e) {
+      alert(`导出失败: ${e}`);
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      const path = await open({
+        title: "导入连接配置",
+        multiple: false,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!path || Array.isArray(path)) return;
+      const count = await api.importConnections(path);
+      await load();
+      alert(`导入成功：${count} 条连接`);
+    } catch (e) {
+      alert(`导入失败: ${e}`);
     }
   };
 
@@ -113,6 +145,10 @@ export default function Sidebar() {
         <button className="btn btn-sm" onClick={() => setShowSettings(true)}>
           ⚙ 设置
         </button>
+      </div>
+      <div className="sidebar-io">
+        <button className="btn btn-sm" onClick={handleImport}>⇩ 导入</button>
+        <button className="btn btn-sm" onClick={handleExport}>⇧ 导出</button>
       </div>
 
       {showForm && (

@@ -53,6 +53,28 @@ impl Default for AuthConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProxyConfig {
+    #[serde(rename = "type")]
+    pub proxy_type: String, // socks5 | http
+    pub host: String,
+    pub port: u16,
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(default)]
+    pub password: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortForward {
+    pub name: String,
+    pub local_port: u16,
+    pub remote_host: String,
+    pub remote_port: u16,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Options {
     #[serde(default = "default_keepalive")]
     pub keep_alive_interval: u64,
@@ -60,6 +82,12 @@ pub struct Options {
     pub compression: bool,
     #[serde(default = "default_timeout")]
     pub connect_timeout: u64,
+    #[serde(default)]
+    pub auto_reconnect: bool,
+    #[serde(default)]
+    pub proxy: Option<ProxyConfig>,
+    #[serde(default)]
+    pub port_forwards: Vec<PortForward>,
 }
 
 impl Default for Options {
@@ -68,6 +96,9 @@ impl Default for Options {
             keep_alive_interval: default_keepalive(),
             compression: false,
             connect_timeout: default_timeout(),
+            auto_reconnect: false,
+            proxy: None,
+            port_forwards: Vec::new(),
         }
     }
 }
