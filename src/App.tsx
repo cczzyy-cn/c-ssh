@@ -3,6 +3,7 @@ import Sidebar from "./components/Sidebar";
 import SftpPanel from "./components/SftpPanel";
 import TabBar from "./components/TabBar";
 import TerminalPane from "./components/TerminalPane";
+import TitleBar from "./components/TitleBar";
 import { b64ToBytes, onTermEvent, type TermDataEvent, type TermErrorEvent, type TermExitEvent } from "./ipc";
 import { useConnections } from "./stores/connections";
 import { applyWindowSize, useSettings } from "./stores/settings";
@@ -58,9 +59,11 @@ export default function App() {
   const activeTab = tabs.find((t) => t.id === activeId);
 
   return (
-    <div className="app">
-      <Sidebar />
-      <main className="main">
+    <div className="app-root">
+      <TitleBar />
+      <div className="app">
+        <Sidebar />
+        <main className="main">
         <TabBar />
         <div className="terminal-area">
           {tabs.length === 0 ? (
@@ -90,7 +93,8 @@ export default function App() {
             </>
           )}
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

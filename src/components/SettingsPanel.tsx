@@ -10,8 +10,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const resolved = useTheme((s) => s.resolved);
   const { fontSize, setFontSize, windowSize, setWindowSize } = useSettings();
   const [sizeInput, setSizeInput] = useState<WindowSize>(windowSize);
-  const [logPath, setLogPath] = useState("");
   const [showLog, setShowLog] = useState(false);
+  const [logPath, setLogPath] = useState("");
 
   useEffect(() => {
     api.getLogPath().then(setLogPath).catch(() => undefined);
@@ -19,7 +19,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-narrow">
+      <div className="modal modal-settings">
         <div className="modal-header">
           <h3>设置</h3>
           <button className="icon-btn" onClick={onClose}>✕</button>
