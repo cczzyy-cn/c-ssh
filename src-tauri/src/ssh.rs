@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
+use crate::logger;
 use crate::store::{ConnectionConfig, PortForward, ProxyConfig, Store};
 
 // ---- 后端 → 前端事件 ----
@@ -164,12 +165,14 @@ pub fn open(
                 }
                 Err(e) => {
                     drop(ch);
+                    let msg = format!("{e}");
+                    logger::error(&format!("[session:{sid2}] {msg}"));
                     emit(
                         &app2,
                         "term:error",
                         TermError {
                             session_id: sid2.clone(),
-                            message: format!("连接中断: {e}"),
+                            message: msg,
                         },
                     );
                     break;
@@ -462,6 +465,7 @@ fn start_port_forwards(
             let listener = match TcpListener::bind(("127.0.0.1", f.local_port)) {
                 Ok(l) => l,
                 Err(e) => {
+                    logger::error(&format!("[forward:{}] 监听失败: {e}", f.name));
                     emit(
                         &app,
                         "forward:status",
@@ -500,6 +504,7 @@ fn start_port_forwards(
                         Ok(c) => c,
                         Err(e) => {
                             drop(lock);
+                            logger::error(&format!("[forward:{}] 隧道 {}:{} 失败: {e}", name, rh, rp));
                             emit(
                                 &app2,
                                 "forward:status",

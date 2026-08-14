@@ -36,6 +36,8 @@ export const api = {
   logFrontendError: (source: string, message: string, stack?: string) =>
     invoke<void>("log_frontend_error", { source, message, stack }),
   getLogPath: () => invoke<string>("get_log_path"),
+  readLog: (limit?: number) => invoke<string>("read_log", { limit }),
+  clearLog: () => invoke<void>("clear_log"),
   openLogDir: () => invoke<void>("open_log_dir"),
 };
 

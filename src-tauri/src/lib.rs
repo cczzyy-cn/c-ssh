@@ -30,6 +30,8 @@ pub fn run() {
             commands::sftp_delete,
             commands::log_frontend_error,
             commands::get_log_path,
+            commands::read_log,
+            commands::clear_log,
             commands::open_log_dir,
         ])
         .run(tauri::generate_context!())

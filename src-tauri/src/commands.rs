@@ -214,6 +214,34 @@ pub fn get_log_path() -> String {
     logger::log_file().to_string_lossy().to_string()
 }
 
+/// 读取日志内容（默认返回末尾 64KB，避免大文件卡 UI）。
+#[tauri::command]
+pub fn read_log(limit: Option<usize>) -> String {
+    let path = logger::log_file();
+    let limit = limit.unwrap_or(64 * 1024);
+    match fs::read(&path) {
+        Ok(bytes) => {
+            if bytes.len() > limit {
+                let start = bytes.len() - limit;
+                format!(
+                    "…（已截断，仅显示末尾 {} 字节，完整日志见文件）\n{}",
+                    limit,
+                    String::from_utf8_lossy(&bytes[start..])
+                )
+            } else {
+                String::from_utf8_lossy(&bytes).to_string()
+            }
+        }
+        Err(_) => "（暂无日志）\n".to_string(),
+    }
+}
+
+/// 清空日志文件内容。
+#[tauri::command]
+pub fn clear_log() -> Result<(), String> {
+    fs::write(logger::log_file(), "").map_err(|e| format!("清空日志失败: {e}"))
+}
+
 /// 用系统文件管理器打开日志目录。
 #[tauri::command]
 pub fn open_log_dir() -> Result<(), String> {

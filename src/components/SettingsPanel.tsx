@@ -3,11 +3,13 @@ import { BUILTIN_THEMES } from "../themes";
 import { useTheme, type ThemeMode } from "../stores/theme";
 import { useSettings } from "../stores/settings";
 import { api } from "../ipc";
+import LogViewer from "./LogViewer";
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { mode, themeName, setMode, setThemeName } = useTheme();
   const { fontSize, setFontSize } = useSettings();
   const [logPath, setLogPath] = useState("");
+  const [showLog, setShowLog] = useState(false);
 
   useEffect(() => {
     api.getLogPath().then(setLogPath).catch(() => undefined);
@@ -74,12 +76,17 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               日志文件：{logPath || "获取中…"}
             </p>
             <div className="log-actions">
+              <button className="btn btn-sm" onClick={() => setShowLog(true)}>
+                👁 查看错误日志
+              </button>
               <button className="btn btn-sm" onClick={() => api.openLogDir().catch((e) => alert(e))}>
                 📂 打开日志目录
               </button>
             </div>
           </div>
         </div>
+
+        {showLog && <LogViewer onClose={() => setShowLog(false)} />}
       </div>
     </div>
   );

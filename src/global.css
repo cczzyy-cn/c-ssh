@@ -559,6 +559,46 @@ select {
   gap: 6px;
 }
 
+/* ---- 日志查看器 ---- */
+.log-viewer {
+  width: 760px;
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  max-height: 86vh;
+}
+
+.log-viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-scroll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-fg-dim);
+  cursor: pointer;
+}
+
+.log-viewer-body {
+  flex: 1;
+  min-height: 320px;
+  overflow: auto;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+
 .font-size-value {
   font-size: 13px;
   min-width: 48px;
