@@ -1,18 +1,30 @@
 import { BUILTIN_THEMES } from "../themes";
 import { useTheme, type ThemeMode } from "../stores/theme";
+import { useSettings } from "../stores/settings";
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { mode, themeName, setMode, setThemeName } = useTheme();
+  const { fontSize, setFontSize } = useSettings();
 
   return (
     <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-narrow">
         <div className="modal-header">
-          <h3>设置 — 主题</h3>
+          <h3>设置</h3>
           <button className="icon-btn" onClick={onClose}>✕</button>
         </div>
 
         <div className="form-grid">
+          <label>
+            终端字号
+            <div className="font-size-row">
+              <button className="btn btn-sm" onClick={() => setFontSize(fontSize - 1)}>−</button>
+              <span className="font-size-value">{fontSize} px</span>
+              <button className="btn btn-sm" onClick={() => setFontSize(fontSize + 1)}>+</button>
+            </div>
+            <span className="hint">也可在终端内按 Ctrl+= / Ctrl+- 调整</span>
+          </label>
+
           <label>
             外观模式
             <select value={mode} onChange={(e) => setMode(e.target.value as ThemeMode)}>

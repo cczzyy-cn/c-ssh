@@ -136,6 +136,30 @@ select {
   visibility: visible;
 }
 
+/* ---- 终端搜索条 ---- */
+.search-bar {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.search-bar input {
+  width: 220px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-fg);
+  font-size: 12px;
+}
+
 /* ---- 终端区 ---- */
 .terminal-area {
   flex: 1;
@@ -387,6 +411,18 @@ select {
 
 .span-2 {
   grid-column: span 2;
+}
+
+.font-size-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.font-size-value {
+  font-size: 13px;
+  min-width: 48px;
+  text-align: center;
 }
 
 .hint {
