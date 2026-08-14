@@ -23,7 +23,24 @@ export const api = {
     invoke<void>("resize", { sessionId, cols, rows }),
   closeSession: (sessionId: string) =>
     invoke<void>("close_session", { sessionId }),
+  sftpList: (sessionId: string, path: string) =>
+    invoke<SftpEntry[]>("sftp_list", { sessionId, path }),
+  sftpDownload: (sessionId: string, remotePath: string, localPath: string) =>
+    invoke<void>("sftp_download", { sessionId, remotePath, localPath }),
+  sftpUpload: (sessionId: string, localPath: string, remotePath: string) =>
+    invoke<void>("sftp_upload", { sessionId, localPath, remotePath }),
+  sftpMkdir: (sessionId: string, path: string) =>
+    invoke<void>("sftp_mkdir", { sessionId, path }),
+  sftpDelete: (sessionId: string, path: string, isDir: boolean) =>
+    invoke<void>("sftp_delete", { sessionId, path, isDir }),
 };
+
+export interface SftpEntry {
+  name: string;
+  isDir: boolean;
+  size: number;
+  mtime: number;
+}
 
 export interface TermDataEvent {
   sessionId: string;

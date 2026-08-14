@@ -6,10 +6,28 @@ export interface AuthConfig {
   useAgent?: boolean;
 }
 
+export interface ProxyConfig {
+  type: "socks5" | "http";
+  host: string;
+  port: number;
+  username?: string;
+  password?: string;
+}
+
+export interface PortForward {
+  name: string;
+  localPort: number;
+  remoteHost: string;
+  remotePort: number;
+}
+
 export interface Options {
   keepAliveInterval: number;
   compression: boolean;
   connectTimeout: number;
+  autoReconnect: boolean;
+  proxy?: ProxyConfig;
+  portForwards: PortForward[];
 }
 
 export interface TermOptions {
@@ -41,7 +59,7 @@ export function emptyConnection(): ConnectionConfig {
     port: 22,
     username: "",
     auth: { type: "password", keyPath: "", useAgent: true },
-    options: { keepAliveInterval: 30, compression: false, connectTimeout: 10 },
+    options: { keepAliveInterval: 30, compression: false, connectTimeout: 10, autoReconnect: false, proxy: undefined, portForwards: [] },
     terminal: {
       fontSize: 14,
       fontFamily: "Cascadia Mono, Consolas, monospace",

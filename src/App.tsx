@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import Sidebar from "./components/Sidebar";
+import SftpPanel from "./components/SftpPanel";
 import TabBar from "./components/TabBar";
 import TerminalPane from "./components/TerminalPane";
 import { b64ToBytes, onTermEvent, type TermDataEvent, type TermErrorEvent, type TermExitEvent } from "./ipc";
 import { useConnections } from "./stores/connections";
-import { useTabs } from "./stores/tabs";
+import { scheduleReconnect, useTabs } from "./stores/tabs";
 
 export default function App() {
-  const { tabs, activeId } = useTabs();
+  const { tabs, activeId, sftpOpen } = useTabs();
   const load = useConnections((s) => s.load);
 
   // 加载连接配置
@@ -29,13 +30,19 @@ export default function App() {
         await onTermEvent<TermExitEvent>("term:exit", (p) => {
           const { tabs: all, setStatus } = useTabs.getState();
           const tab = all.find((t) => t.id === p.sessionId);
+          if (!tab) return;
           // 错误中断时保留 error 状态展示原因
-          if (tab && tab.status !== "error") setStatus(p.sessionId, "closed");
+          if (tab.status !== "error") setStatus(p.sessionId, "closed");
+          if (tab.autoReconnect) scheduleReconnect(p.sessionId);
         }),
       );
       unlisteners.push(
         await onTermEvent<TermErrorEvent>("term:error", (p) => {
-          useTabs.getState().setStatus(p.sessionId, "error", p.message);
+          const { tabs: all, setStatus } = useTabs.getState();
+          const tab = all.find((t) => t.id === p.sessionId);
+          if (!tab) return;
+          setStatus(p.sessionId, "error", p.message);
+          if (tab.autoReconnect) scheduleReconnect(p.sessionId);
         }),
       );
     })();
@@ -51,7 +58,14 @@ export default function App() {
         <TabBar />
         <div className="terminal-area">
           {activeTab ? (
-            <TerminalPane key={activeTab.id} tab={activeTab} />
+            <div className="terminal-row">
+              <div className="terminal-col">
+                <TerminalPane key={activeTab.id} tab={activeTab} />
+              </div>
+              {sftpOpen[activeTab.id] && activeTab.connId && (
+                <SftpPanel tab={activeTab} />
+              )}
+            </div>
           ) : (
             <div className="empty-state">
               <div className="empty-title">c-ssh</div>

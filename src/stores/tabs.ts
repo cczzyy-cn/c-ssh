@@ -14,6 +14,8 @@ export interface Tab {
   error?: string;
   /** 连接级主题覆盖（xterm theme） */
   theme?: string;
+  /** 断线自动重连 */
+  autoReconnect?: boolean;
 }
 
 interface TabsState {
@@ -21,18 +23,22 @@ interface TabsState {
   activeId: string | null;
   /** sessionId -> xterm Terminal 实例（供全局 term:data 分发） */
   terminals: Record<string, Terminal>;
+  /** sessionId -> SFTP 面板是否打开 */
+  sftpOpen: Record<string, boolean>;
   addTab: (tab: Tab) => void;
   closeTab: (id: string) => Promise<void>;
   setActive: (id: string) => void;
   setStatus: (id: string, status: TabStatus, error?: string) => void;
   registerTerminal: (id: string, term: Terminal) => void;
   unregisterTerminal: (id: string) => void;
+  setSftpOpen: (id: string, open: boolean) => void;
 }
 
 export const useTabs = create<TabsState>((set, get) => ({
   tabs: [],
   activeId: null,
   terminals: {},
+  sftpOpen: {},
   addTab: (tab) =>
     set((s) => ({ tabs: [...s.tabs, tab], activeId: tab.id })),
   closeTab: async (id) => {
@@ -46,9 +52,12 @@ export const useTabs = create<TabsState>((set, get) => ({
       const tabs = s.tabs.filter((t) => t.id !== id);
       const terminals = { ...s.terminals };
       delete terminals[id];
+      const sftpOpen = { ...s.sftpOpen };
+      delete sftpOpen[id];
       return {
         tabs,
         terminals,
+        sftpOpen,
         activeId: s.activeId === id ? (tabs.length ? tabs[tabs.length - 1].id : null) : s.activeId,
       };
     });
@@ -66,6 +75,8 @@ export const useTabs = create<TabsState>((set, get) => ({
       delete terminals[id];
       return { terminals };
     }),
+  setSftpOpen: (id, open) =>
+    set((s) => ({ sftpOpen: { ...s.sftpOpen, [id]: open } })),
 }));
 
 export async function openConnection(conn: ConnectionConfig): Promise<void> {
@@ -77,7 +88,14 @@ export async function openConnection(conn: ConnectionConfig): Promise<void> {
     alert(`连接失败: ${e}`);
     return;
   }
-  addTab({ id: sid, connId: conn.id, title: conn.name, status: "connecting", theme: conn.theme });
+  addTab({
+    id: sid,
+    connId: conn.id,
+    title: conn.name,
+    status: "connecting",
+    theme: conn.theme,
+    autoReconnect: conn.options.autoReconnect,
+  });
   setStatus(sid, "connected");
 }
 
@@ -86,4 +104,34 @@ export async function openEcho(): Promise<void> {
   const sid = await api.openEchoSession();
   addTab({ id: sid, title: "演示终端 (echo)", status: "connected" });
   setStatus(sid, "connected");
+}
+
+/** 断线自动重连：延迟后重开会话并替换 tab.id；失败则递增间隔重试。 */
+export function scheduleReconnect(sessionId: string, delayMs = 3000): void {
+  setTimeout(async () => {
+    const { tabs, setStatus } = useTabs.getState();
+    const tab = tabs.find((t) => t.id === sessionId);
+    if (!tab || !tab.connId) return;
+    setStatus(sessionId, "connecting");
+    try {
+      const sid = await api.openSession(tab.connId);
+      useTabs.setState((s) => {
+        const cur = s.tabs.find((t) => t.id === sessionId);
+        if (!cur) return s;
+        const sftpOpen = { ...s.sftpOpen };
+        sftpOpen[sid] = !!sftpOpen[sessionId];
+        delete sftpOpen[sessionId];
+        return {
+          tabs: s.tabs.map((t) =>
+            t.id === sessionId ? { ...t, id: sid, status: "connected" as TabStatus, error: undefined } : t,
+          ),
+          activeId: s.activeId === sessionId ? sid : s.activeId,
+          sftpOpen,
+        };
+      });
+    } catch (e) {
+      setStatus(sessionId, "error", `重连失败: ${e}`);
+      scheduleReconnect(sessionId, 5000);
+    }
+  }, delayMs);
 }

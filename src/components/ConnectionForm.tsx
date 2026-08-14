@@ -23,6 +23,30 @@ export default function ConnectionForm({ conn, onClose }: Props) {
   const setAuth = (patch: Partial<ConnectionConfig["auth"]>) =>
     setForm((f) => ({ ...f, auth: { ...f.auth, ...patch } }));
 
+  const setOptions = (patch: Partial<ConnectionConfig["options"]>) =>
+    setForm((f) => ({ ...f, options: { ...f.options, ...patch } }));
+
+  const parseForwards = (text: string): ConnectionConfig["options"]["portForwards"] =>
+    text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [name, localPort, remoteHost, remotePort] = line.split("|");
+        return {
+          name: name?.trim() || "转发",
+          localPort: Number(localPort?.trim()) || 0,
+          remoteHost: remoteHost?.trim() || "",
+          remotePort: Number(remotePort?.trim()) || 0,
+        };
+      })
+      .filter((f) => f.localPort > 0 && f.remoteHost && f.remotePort > 0);
+
+  const forwardsText =
+    form.options.portForwards
+      .map((f) => `${f.name}|${f.localPort}|${f.remoteHost}|${f.remotePort}`)
+      .join("\n") || "";
+
   const handleSave = async () => {
     if (!form.name.trim() || !form.host.trim()) {
       alert("名称和主机必填");
@@ -157,8 +181,87 @@ export default function ConnectionForm({ conn, onClose }: Props) {
               type="number"
               value={form.options.keepAliveInterval}
               onChange={(e) =>
-                set("options", { ...form.options, keepAliveInterval: Number(e.target.value) || 30 })
+                setOptions({ keepAliveInterval: Number(e.target.value) || 30 })
               }
+            />
+          </label>
+
+          <label className="span-2">
+            <input
+              type="checkbox"
+              checked={form.options.autoReconnect}
+              onChange={(e) => setOptions({ autoReconnect: e.target.checked })}
+            />
+            断线自动重连
+          </label>
+
+          <label>
+            代理
+            <select
+              value={form.options.proxy?.type ?? "none"}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "none") setOptions({ proxy: undefined });
+                else setOptions({ proxy: { type: v as "socks5" | "http", host: "", port: 1080 } });
+              }}
+            >
+              <option value="none">无</option>
+              <option value="socks5">SOCKS5</option>
+              <option value="http">HTTP</option>
+            </select>
+          </label>
+          {form.options.proxy && (
+            <>
+              <label>
+                代理主机:端口
+                <div className="proxy-row">
+                  <input
+                    value={form.options.proxy.host}
+                    onChange={(e) =>
+                      setOptions({ proxy: { ...form.options.proxy!, host: e.target.value } })
+                    }
+                    placeholder="127.0.0.1"
+                  />
+                  <input
+                    type="number"
+                    className="proxy-port"
+                    value={form.options.proxy.port}
+                    onChange={(e) =>
+                      setOptions({ proxy: { ...form.options.proxy!, port: Number(e.target.value) || 1080 } })
+                    }
+                  />
+                </div>
+              </label>
+              <label className="span-2">
+                代理用户名 / 密码（可选）
+                <div className="proxy-row">
+                  <input
+                    value={form.options.proxy.username ?? ""}
+                    onChange={(e) =>
+                      setOptions({ proxy: { ...form.options.proxy!, username: e.target.value || undefined } })
+                    }
+                    placeholder="用户名"
+                  />
+                  <input
+                    type="password"
+                    value={form.options.proxy.password ?? ""}
+                    onChange={(e) =>
+                      setOptions({ proxy: { ...form.options.proxy!, password: e.target.value || undefined } })
+                    }
+                    placeholder="密码"
+                  />
+                </div>
+              </label>
+            </>
+          )}
+
+          <label className="span-2">
+            本地端口转发（每行：名称|本地端口|远程主机|远程端口）
+            <textarea
+              rows={3}
+              value={forwardsText}
+              onChange={(e) => setOptions({ portForwards: parseForwards(e.target.value) })}
+              placeholder={"示例：MySQL|3306|db.internal|3306"}
             />
           </label>
         </div>
