@@ -28,10 +28,15 @@ export function normalizeSftpPath(p: string): string {
   return s.startsWith("/") ? s : `/${s}`;
 }
 
+/** 取纯文件名（防后端返回完整路径/混合斜杠）。 */
+function baseName(name: string): string {
+  return name.split(/[\\/]/).pop() ?? name;
+}
+
 /** 拼接当前路径与条目名（防反斜杠/重复斜杠）。 */
 function joinPath(base: string, name: string): string {
   return normalizeSftpPath(
-    base === "/" ? `/${name}` : `${base}/${name}`,
+    base === "/" ? `/${baseName(name)}` : `${base}/${baseName(name)}`,
   );
 }
 
@@ -150,9 +155,9 @@ export default function SftpPanel({ tab }: Props) {
         />
       </div>
       <div className="sftp-tools">
-        <button className="btn btn-sm" onClick={handleUpload} disabled={busy}>↑ 上传</button>
-        <button className="btn btn-sm" onClick={handleMkdir}>＋ 目录</button>
-        <button className="btn btn-sm" onClick={() => refresh(path)}>⟳</button>
+        <button className="btn btn-sm" onClick={handleUpload} disabled={busy}>上传</button>
+        <button className="btn btn-sm" onClick={handleMkdir}>新建目录</button>
+        <button className="btn btn-sm" onClick={() => refresh(path)}>刷新</button>
       </div>
       <div className="sftp-list">
         {loading && <div className="sftp-hint">加载中…</div>}

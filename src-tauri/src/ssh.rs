@@ -707,8 +707,14 @@ pub fn sftp_list(mgr: &SessionManager, sid: &str, path: &str) -> Result<Vec<Sftp
             .map_err(|e| format!("读取目录失败: {e}"))?;
         let mut out = Vec::with_capacity(entries.len());
         for (p, stat) in entries {
+            // 注意：ssh2 的 readdir 返回 dirname.join(filename) 的完整路径（Windows 上为
+            // 反斜杠混合格式），这里只取纯文件名供前端展示与拼接
+            let name = p
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| p.to_string_lossy().to_string());
             out.push(SftpEntry {
-                name: p.to_string_lossy().to_string(),
+                name,
                 is_dir: stat.is_dir(),
                 size: stat.size.unwrap_or(0),
                 mtime: stat.mtime.unwrap_or(0),
