@@ -23,6 +23,7 @@ html,
 body,
 #root {
   height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -299,6 +300,7 @@ select {
   position: relative;
   min-height: 0;
   background: var(--color-bg);
+  overflow: hidden;
 }
 
 .terminal-row {
@@ -465,18 +467,14 @@ select {
   overflow: hidden;
 }
 
-/* xterm 滚动条细化为窄条（保留回滚功能，不显突兀） */
+/* xterm 回滚滚动条完全隐藏（滚动功能保留：滚轮 / Shift+PageUp） */
 .xterm .xterm-viewport {
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .xterm .xterm-viewport::-webkit-scrollbar {
-  width: 6px;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
+  display: none;
+  width: 0;
 }
 
 .terminal-overlay {
