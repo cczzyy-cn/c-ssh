@@ -482,9 +482,8 @@ pub fn write_input(mgr: &SessionManager, sid: &str, data: &str) -> Result<(), St
                     Err(e) => return Err(format!("写入失败: {e}")),
                 }
             }
-            if let Ok(mut ch) = ssh.channel.try_lock() {
-                ch.flush().ok();
-            }
+            // 注意：不能调用 flush()——ssh2 的 flush 是 libssh2_channel_flush_ex，
+            // 会丢弃接收缓冲数据（曾导致长按输入时回显丢失、数据错乱断开）。
             Ok(())
         }
         SessionKind::Echo { tx } => {
@@ -614,7 +613,7 @@ fn start_port_forwards(
                                 Err(_) => break,
                             };
                             let mut ch = chan_w.lock().unwrap();
-                            if ch.write_all(&buf[..n]).is_err() || ch.flush().is_err() {
+                            if ch.write_all(&buf[..n]).is_err() {
                                 break;
                             }
                         }
