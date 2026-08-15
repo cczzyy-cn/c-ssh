@@ -467,44 +467,34 @@ select {
   overflow: hidden;
 }
 
-/* 终端区彻底隐藏滚动条（回滚功能保留：滚轮 / Shift+PageUp） */
-.terminal-area,
-.terminal-col,
-.terminal-pane,
-.terminal-container {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+/* ---- 全局统一滚动条样式（细条、圆角、跟随主题） ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
 
-.terminal-area *::-webkit-scrollbar,
-.terminal-col *::-webkit-scrollbar,
-.terminal-pane *::-webkit-scrollbar,
-.terminal-container *::-webkit-scrollbar,
-.xterm *::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* 从根上消灭 xterm 滚动条：viewport 去掉 overflow 滚动容器。
-   xterm 回滚由内部 scrollTop 控制（滚轮 / Shift+PageUp 仍可用）。 */
-.xterm .xterm-viewport {
-  overflow-y: hidden !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+*::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.xterm .xterm-viewport::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
-.xterm,
-.xterm .xterm-screen {
-  overflow: hidden !important;
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-fg-dim);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .terminal-overlay {
@@ -940,15 +930,4 @@ select {
   color: var(--color-fg-dim);
   text-align: center;
   line-height: 1.8;
-}
-
-/* ---- 滚动条 ---- */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
 }
