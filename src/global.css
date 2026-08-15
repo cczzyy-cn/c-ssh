@@ -467,14 +467,31 @@ select {
   overflow: hidden;
 }
 
-/* xterm 回滚滚动条完全隐藏（滚动功能保留：滚轮 / Shift+PageUp） */
-.xterm .xterm-viewport {
-  scrollbar-width: none;
+/* 终端区彻底隐藏滚动条（回滚功能保留：滚轮 / Shift+PageUp） */
+.terminal-area,
+.terminal-col,
+.terminal-pane,
+.terminal-container {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-.xterm .xterm-viewport::-webkit-scrollbar {
-  display: none;
-  width: 0;
+.terminal-area *::-webkit-scrollbar,
+.terminal-col *::-webkit-scrollbar,
+.terminal-pane *::-webkit-scrollbar,
+.terminal-container *::-webkit-scrollbar,
+.xterm *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.xterm .xterm-viewport,
+.xterm .xterm-screen,
+.xterm {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 .terminal-overlay {
