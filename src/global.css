@@ -11,6 +11,14 @@
   --color-hover: #2c2e33;
   --color-selection: #3b4a5a;
   --color-danger: #e5534b;
+
+  /* 全局界面字号基准（设置面板可调，图标 emoji 随字号缩放） */
+  --ui-fs-base: 13px;
+  --ui-fs-xs: calc(var(--ui-fs-base) - 2px);
+  --ui-fs-sm: calc(var(--ui-fs-base) - 1px);
+  --ui-fs: var(--ui-fs-base);
+  --ui-fs-lg: calc(var(--ui-fs-base) + 1px);
+  --ui-fs-xl: calc(var(--ui-fs-base) + 15px);
 }
 
 * {
@@ -32,7 +40,7 @@ body {
   color: var(--color-fg);
   overflow: hidden;
   user-select: none;
-  font-size: 14px;
+  font-size: var(--ui-fs-lg);
 }
 
 input,
@@ -61,7 +69,7 @@ select {
 
 .titlebar-title {
   padding: 0 14px;
-  font-size: 13px;
+  font-size: var(--ui-fs);
   font-weight: 600;
   color: var(--color-fg);
   white-space: nowrap;
@@ -84,7 +92,7 @@ select {
   background: none;
   border: none;
   color: var(--color-fg-dim);
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -186,7 +194,7 @@ select {
 }
 
 .tabbar-file {
-  font-size: 14px;
+  font-size: var(--ui-fs-lg);
 }
 
 .tabbar-file.on {
@@ -206,7 +214,7 @@ select {
   cursor: pointer;
   border-right: 1px solid var(--color-border);
   color: var(--color-fg-dim);
-  font-size: 13px;
+  font-size: var(--ui-fs);
   max-width: 220px;
   min-width: 120px;
   user-select: none;
@@ -291,7 +299,7 @@ select {
   border: none;
   outline: none;
   color: var(--color-fg);
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
 }
 
 /* ---- 终端区 ---- */
@@ -371,7 +379,7 @@ select {
 
 .sftp-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--ui-fs);
 }
 
 .sftp-path {
@@ -388,7 +396,7 @@ select {
   border: 1px solid var(--color-border);
   border-radius: 4px;
   color: var(--color-fg);
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   outline: none;
 }
 
@@ -406,7 +414,7 @@ select {
 
 .sftp-hint {
   color: var(--color-fg-dim);
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   text-align: center;
   padding: 16px 0;
 }
@@ -417,7 +425,7 @@ select {
   gap: 6px;
   padding: 4px 6px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   cursor: default;
 }
 
@@ -440,7 +448,7 @@ select {
 .sftp-size,
 .sftp-time {
   color: var(--color-fg-dim);
-  font-size: 11px;
+  font-size: var(--ui-fs-xs);
   flex-shrink: 0;
 }
 
@@ -515,7 +523,7 @@ select {
   justify-content: center;
   gap: 10px;
   color: var(--color-fg-dim);
-  font-size: 13px;
+  font-size: var(--ui-fs);
 }
 
 .terminal-pending-spinner {
@@ -571,7 +579,7 @@ select {
 }
 
 .group-title {
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   color: var(--color-fg-dim);
   padding: 8px 6px 4px;
 }
@@ -594,14 +602,14 @@ select {
 }
 
 .conn-name {
-  font-size: 13px;
+  font-size: var(--ui-fs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .conn-sub {
-  font-size: 11px;
+  font-size: var(--ui-fs-xs);
   color: var(--color-fg-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -619,7 +627,7 @@ select {
 
 .empty-hint {
   color: var(--color-fg-dim);
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   text-align: center;
   padding: 20px 10px;
 }
@@ -645,7 +653,7 @@ select {
   color: var(--color-fg);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-fs);
 }
 
 .btn:hover {
@@ -664,7 +672,7 @@ select {
 
 .btn-sm {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
 }
 
 .btn:disabled {
@@ -679,7 +687,7 @@ select {
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
 }
 
 .icon-btn:hover {
@@ -740,7 +748,7 @@ select {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   color: var(--color-fg-dim);
   min-width: 0;
 }
@@ -754,7 +762,7 @@ select {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   color: var(--color-fg);
-  font-size: 13px;
+  font-size: var(--ui-fs);
   outline: none;
 }
 
@@ -802,7 +810,7 @@ select {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   color: var(--color-fg-dim);
   cursor: pointer;
 }
@@ -816,7 +824,7 @@ select {
   border-radius: 6px;
   padding: 10px;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -824,7 +832,7 @@ select {
 }
 
 .font-size-value {
-  font-size: 13px;
+  font-size: var(--ui-fs);
   min-width: 48px;
   text-align: center;
 }
@@ -853,7 +861,7 @@ select {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   color: var(--color-fg);
-  font-size: 13px;
+  font-size: var(--ui-fs);
   outline: none;
   resize: vertical;
   font-family: "Cascadia Mono", Consolas, monospace;
@@ -864,7 +872,7 @@ select {
 }
 
 .hint {
-  font-size: 11px;
+  font-size: var(--ui-fs-xs);
   color: var(--color-fg-dim);
   opacity: 0.8;
 }
@@ -902,7 +910,7 @@ select {
 }
 
 .theme-name {
-  font-size: 12px;
+  font-size: var(--ui-fs-sm);
 }
 
 /* ---- 空状态 ---- */
@@ -916,13 +924,13 @@ select {
 }
 
 .empty-title {
-  font-size: 28px;
+  font-size: var(--ui-fs-xl);
   font-weight: 700;
   color: var(--color-fg-dim);
 }
 
 .empty-sub {
-  font-size: 13px;
+  font-size: var(--ui-fs);
   color: var(--color-fg-dim);
   text-align: center;
   line-height: 1.8;
