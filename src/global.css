@@ -467,54 +467,54 @@ select {
   overflow: hidden;
 }
 
-/* xterm 自定义滚动条：外观与文件栏一致（8px 透明轨道 + 4px 居中圆滑条 + 主题色 + hover 变亮）；
-   显隐交给 xterm 的 visible/invisible 机制（内容可滚时显示，与文件栏行为一致） */
+/* 终端滚动条：带箭头的原生风格（与系统原生滚动条一致） */
 .xterm .xterm-scrollable-element > .scrollbar {
   display: block !important;
-  width: 8px !important;
-  background: transparent !important;
-  border: none !important;
+  width: 14px !important;
+  background: #f0f0f0 !important;
+  border: 1px solid #d6d6d6 !important;
 }
 
+/* 上下箭头（CSS 三角） */
+.xterm .xterm-scrollable-element > .scrollbar.vertical::before,
+.xterm .xterm-scrollable-element > .scrollbar.vertical::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  z-index: 2;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar.vertical::before {
+  top: 4px;
+  border-bottom: 5px solid #666;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar.vertical::after {
+  bottom: 4px;
+  border-top: 5px solid #666;
+}
+
+/* 滑块：方形、原生灰 */
 .xterm .xterm-scrollable-element > .scrollbar > .slider {
-  left: 2px !important;
-  right: auto !important;
-  width: 4px !important;
-  border-radius: 4px !important;
-  background: var(--color-border) !important;
+  left: 1px !important;
+  right: 1px !important;
+  width: auto !important;
+  border-radius: 0 !important;
+  background: #c8c8c8 !important;
+  border: 1px solid #a8a8a8 !important;
 }
 
 .xterm .xterm-scrollable-element > .scrollbar > .slider:hover,
 .xterm .xterm-scrollable-element > .scrollbar > .slider.active {
-  background: var(--color-fg-dim) !important;
+  background: #b0b0b0 !important;
 }
 
-/* ---- 全局统一滚动条样式（细条、圆角、跟随主题）。
-   注意：不能设置标准 scrollbar-width（它会在 Chromium 中压制
-   ::-webkit-scrollbar 的全部样式并渲染成原生带箭头滚动条）。 ---- */
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-fg-dim);
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
+/* 滚动条使用系统原生样式（带箭头）——不做自定义，保持与操作系统一致 */
 
 .terminal-overlay {
   position: absolute;
