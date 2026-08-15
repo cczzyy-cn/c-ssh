@@ -72,35 +72,41 @@ export default function App() {
       <div className="app">
         <Sidebar />
         <main className="main">
-        <TabBar />
-        <div className="terminal-area">
-          {tabs.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-title">c-ssh</div>
-              <div className="empty-sub">
-                在左侧选择连接双击打开终端，
-                <br />
-                或点击「演示终端」无需服务器体验。
+          <div className="content-row">
+            {/* 中栏：连接标签 + 终端内容 */}
+            <div className="center-col">
+              <TabBar />
+              <div className="terminal-area">
+                {tabs.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-title">c-ssh</div>
+                    <div className="empty-sub">
+                      在左侧选择连接双击打开终端，
+                      <br />
+                      或点击「演示终端」无需服务器体验。
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* 所有 tab 的终端实例保活：切换标签不销毁，内容保留 */}
+                    {tabs.map((t) => (
+                      <div
+                        key={t.id}
+                        className="terminal-col"
+                        style={{ display: t.id === activeId ? undefined : "none" }}
+                      >
+                        <TerminalPane tab={t} active={t.id === activeId} />
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
-          ) : (
-            <>
-              {/* 所有 tab 的终端实例保活：切换标签不销毁，内容保留 */}
-              {tabs.map((t) => (
-                <div
-                  key={t.id}
-                  className="terminal-col"
-                  style={{ display: t.id === activeId ? undefined : "none" }}
-                >
-                  <TerminalPane tab={t} active={t.id === activeId} />
-                </div>
-              ))}
-              {activeTab?.connId &&
-                activeTab.status === "connected" &&
-                sftpOpen && <SftpPanel tab={activeTab} />}
-            </>
-          )}
-        </div>
+            {/* 右栏：文件栏（独立，宽度可拖拽） */}
+            {activeTab?.connId && activeTab.status === "connected" && sftpOpen && (
+              <SftpPanel tab={activeTab} />
+            )}
+          </div>
         </main>
       </div>
     </div>

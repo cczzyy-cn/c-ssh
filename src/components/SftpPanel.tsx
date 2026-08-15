@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { api, type SftpEntry } from "../ipc";
 import { useTabs, type SftpState, type Tab } from "../stores/tabs";
@@ -46,6 +46,39 @@ export default function SftpPanel({ tab }: Props) {
   const setSftpOpen = useTabs((s) => s.setSftpOpen);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  // 文件栏宽度（可拖拽调整，持久化）
+  const [width, setWidth] = useState(() => {
+    try {
+      return Number(localStorage.getItem("c-ssh:sftp-width")) || 340;
+    } catch {
+      return 340;
+    }
+  });
+  const [dragging, setDragging] = useState(false);
+  const widthRef = useRef(width);
+  widthRef.current = width;
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const onMove = (ev: MouseEvent) => {
+      // 面板在最右侧：宽度 = 视口宽 - 鼠标 x
+      const w = Math.min(560, Math.max(200, window.innerWidth - ev.clientX));
+      setWidth(w);
+    };
+    const onUp = () => {
+      setDragging(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      try {
+        localStorage.setItem("c-ssh:sftp-width", String(widthRef.current));
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   const path: string | null = state?.path ?? null;
   const entries: SftpEntry[] = state?.entries ?? [];
@@ -170,7 +203,7 @@ export default function SftpPanel({ tab }: Props) {
   };
 
   return (
-    <div className="sftp-panel">
+    <div className={`sftp-panel ${dragging ? "resizing" : ""}`} style={{ width }}>
       <div className="sftp-header">
         <span className="sftp-title">SFTP 文件</span>
         <button className="btn btn-sm" onClick={() => setSftpOpen(false)}>
@@ -214,6 +247,12 @@ export default function SftpPanel({ tab }: Props) {
             </div>
           ))}
       </div>
+      {/* 拖拽调整文件栏宽度 */}
+      <div
+        className="sftp-resizer"
+        onMouseDown={startResize}
+        title="拖动调整宽度"
+      />
     </div>
   );
 }

@@ -143,6 +143,21 @@ select {
   min-width: 0;
 }
 
+/* 中右两栏：终端 + 文件栏 */
+.content-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  min-width: 0;
+}
+
+.center-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ---- 标签栏 ---- */
 .tabbar {
   display: flex;
@@ -283,19 +298,50 @@ select {
   min-width: 0;
 }
 
-/* ---- SFTP 面板 ---- */
+/* ---- SFTP 面板（右栏，独立三栏布局，宽度可拖拽） ---- */
 .sftp-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 340px;
-  z-index: 30;
+  flex-shrink: 0;
   border-left: 1px solid var(--color-border);
   background: var(--color-bg-alt);
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative;
+  container-type: inline-size;
+}
+
+/* 内容自适应：窄宽度时隐藏次要列 */
+@container (max-width: 280px) {
+  .sftp-time {
+    display: none;
+  }
+}
+
+@container (max-width: 240px) {
+  .sftp-size {
+    display: none;
+  }
+}
+
+.sftp-panel.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* 宽度拖拽把手（面板左边缘） */
+.sftp-resizer {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.sftp-resizer:hover {
+  background: var(--color-accent);
+  opacity: 0.6;
 }
 
 .sftp-header {
