@@ -97,7 +97,7 @@ export default function App() {
               ))}
               {activeTab?.connId &&
                 activeTab.status === "connected" &&
-                sftpOpen[activeTab.id] && <SftpPanel tab={activeTab} />}
+                sftpOpen && <SftpPanel tab={activeTab} />}
             </>
           )}
         </div>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { api, type SftpEntry } from "../ipc";
-import { useTabs, type Tab } from "../stores/tabs";
+import { useTabs, type SftpState, type Tab } from "../stores/tabs";
 
 interface Props {
   tab: Tab;
@@ -41,53 +41,70 @@ function joinPath(base: string, name: string): string {
 }
 
 export default function SftpPanel({ tab }: Props) {
-  // null = 正在解析主目录；解析成功前不发起列表请求
-  const [path, setPath] = useState<string | null>(null);
-  const [entries, setEntries] = useState<SftpEntry[]>([]);
+  const state = useTabs((s) => s.sftpStates[tab.id]);
+  const setSftpState = useTabs((s) => s.setSftpState);
+  const setSftpOpen = useTabs((s) => s.setSftpOpen);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const closeSftp = useTabs((s) => s.setSftpOpen);
 
-  // 打开面板：先解析用户主目录（realpath "."），失败回退到 "/"
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const home = await api.sftpRealpath(tab.id, ".");
-        if (!cancelled) setPath(normalizeSftpPath(home));
-      } catch {
-        if (!cancelled) setPath("/");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tab.id]);
+  const path: string | null = state?.path ?? null;
+  const entries: SftpEntry[] = state?.entries ?? [];
 
+  const saveState = useCallback(
+    (patch: Partial<SftpState>) => {
+      const prev = useTabs.getState().sftpStates[tab.id];
+      setSftpState(tab.id, {
+        ...(prev ?? { path: "/", entries: [], initialized: false }),
+        ...patch,
+      });
+    },
+    [tab.id, setSftpState],
+  );
+
+  // 刷新指定路径（用户操作触发；切换标签不触发）
   const refresh = useCallback(
     async (p: string) => {
       setLoading(true);
       try {
         const list = await api.sftpList(tab.id, p);
-        setEntries(list);
+        saveState({ path: p, entries: list, initialized: true });
       } catch (e) {
         alert(`读取目录失败: ${e}`);
       } finally {
         setLoading(false);
       }
     },
-    [tab.id],
+    [tab.id, saveState],
   );
 
+  // 首次显示或切到未初始化的连接：解析主目录并列出；已有缓存则直接显示（不重新拉取）
   useEffect(() => {
-    if (path) refresh(path);
-  }, [path, refresh]);
+    if (state?.initialized) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const home = normalizeSftpPath(await api.sftpRealpath(tab.id, "."));
+        const list = await api.sftpList(tab.id, home);
+        if (!cancelled) {
+          saveState({ path: home, entries: list, initialized: true });
+        }
+      } catch {
+        if (!cancelled) {
+          saveState({ path: "/", entries: [], initialized: true });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab.id]);
 
   const parent = !path || path === "/" ? null : path.replace(/\/[^/]*\/?$/, "") || "/";
 
   const handleOpen = (entry: SftpEntry) => {
-    if (!path) return;
-    if (entry.isDir) setPath(joinPath(path, entry.name));
+    if (!path || !entry.isDir) return;
+    refresh(joinPath(path, entry.name));
   };
 
   const handleUpload = async () => {
@@ -102,8 +119,7 @@ export default function SftpPanel({ tab }: Props) {
     try {
       for (const f of files) {
         const name = f.split(/[\\/]/).pop() ?? "file";
-        const remote = joinPath(path, name);
-        await api.sftpUpload(tab.id, f, remote);
+        await api.sftpUpload(tab.id, f, joinPath(path, name));
       }
       await refresh(path);
     } catch (e) {
@@ -122,8 +138,7 @@ export default function SftpPanel({ tab }: Props) {
     if (!local || Array.isArray(local)) return;
     setBusy(true);
     try {
-      const remote = joinPath(path, entry.name);
-      await api.sftpDownload(tab.id, remote, local);
+      await api.sftpDownload(tab.id, joinPath(path, entry.name), local);
     } catch (e) {
       alert(`下载失败: ${e}`);
     } finally {
@@ -135,9 +150,8 @@ export default function SftpPanel({ tab }: Props) {
     if (!path) return;
     const name = prompt("新建目录名称");
     if (!name) return;
-    const remote = joinPath(path, name);
     try {
-      await api.sftpMkdir(tab.id, remote);
+      await api.sftpMkdir(tab.id, joinPath(path, name));
       await refresh(path);
     } catch (e) {
       alert(`创建目录失败: ${e}`);
@@ -148,8 +162,7 @@ export default function SftpPanel({ tab }: Props) {
     if (!path) return;
     if (!confirm(`确定删除「${entry.name}」？`)) return;
     try {
-      const remote = joinPath(path, entry.name);
-      await api.sftpDelete(tab.id, remote, entry.isDir);
+      await api.sftpDelete(tab.id, joinPath(path, entry.name), entry.isDir);
       await refresh(path);
     } catch (e) {
       alert(`删除失败: ${e}`);
@@ -160,20 +173,18 @@ export default function SftpPanel({ tab }: Props) {
     <div className="sftp-panel">
       <div className="sftp-header">
         <span className="sftp-title">SFTP 文件</span>
-        <button className="btn btn-sm" onClick={() => closeSftp(tab.id, false)}>
+        <button className="btn btn-sm" onClick={() => setSftpOpen(false)}>
           收起 ▸
         </button>
       </div>
       <div className="sftp-path">
-        <button className="icon-btn" title="上级目录" disabled={!parent} onClick={() => parent && setPath(parent)}>↑</button>
+        <button className="icon-btn" title="上级目录" disabled={!parent} onClick={() => parent && refresh(parent)}>↑</button>
         <input
           value={path ?? ""}
-          onChange={(e) => setPath(e.target.value)}
+          onChange={(e) => saveState({ path: e.target.value })}
           onKeyDown={(e) => {
             if (e.key === "Enter" && path) {
-              const n = normalizeSftpPath(path);
-              setPath(n);
-              refresh(n);
+              refresh(normalizeSftpPath(path));
             }
           }}
           placeholder={path ? undefined : "正在解析主目录…"}
@@ -186,7 +197,7 @@ export default function SftpPanel({ tab }: Props) {
       </div>
       <div className="sftp-list">
         {loading && <div className="sftp-hint">加载中…</div>}
-        {!loading && entries.length === 0 && <div className="sftp-hint">空目录</div>}
+        {!loading && path && entries.length === 0 && <div className="sftp-hint">空目录</div>}
         {!loading &&
           entries.map((e) => (
             <div key={e.name} className="sftp-item" onDoubleClick={() => handleOpen(e)}>
