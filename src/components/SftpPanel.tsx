@@ -169,9 +169,19 @@ export default function SftpPanel({ tab }: Props) {
       defaultPath: entry.name,
     });
     if (!local || Array.isArray(local)) return;
+    // 确保保留远程文件的后缀名（对话框可能未预填文件名导致后缀丢失）
+    const dot = entry.name.lastIndexOf(".");
+    let target = local;
+    if (dot > 0) {
+      const ext = entry.name.slice(dot); // 含点，如 ".txt"
+      const base = local.split(/[\\/]/).pop() ?? local;
+      if (!base.endsWith(ext)) {
+        target = `${local}${ext}`;
+      }
+    }
     setBusy(true);
     try {
-      await api.sftpDownload(tab.id, joinPath(path, entry.name), local);
+      await api.sftpDownload(tab.id, joinPath(path, entry.name), target);
     } catch (e) {
       alert(`下载失败: ${e}`);
     } finally {
