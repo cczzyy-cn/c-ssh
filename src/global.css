@@ -467,54 +467,31 @@ select {
   overflow: hidden;
 }
 
-/* 终端滚动条：带箭头的原生风格（与系统原生滚动条一致） */
+/* 连接窗口（终端）隐藏滚动条，回滚功能保留（滚轮 / Shift+PageUp） */
 .xterm .xterm-scrollable-element > .scrollbar {
-  display: block !important;
-  width: 14px !important;
-  background: #f0f0f0 !important;
-  border: 1px solid #d6d6d6 !important;
+  display: none !important;
 }
 
-/* 上下箭头（CSS 三角） */
-.xterm .xterm-scrollable-element > .scrollbar.vertical::before,
-.xterm .xterm-scrollable-element > .scrollbar.vertical::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  width: 0;
-  height: 0;
-  transform: translateX(-50%);
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  z-index: 2;
+/* 滚动条使用系统原生样式——不做自定义，保持与操作系统一致 */
+
+/* 文件栏滚动条：轨道背景透明，细条圆角滑块 */
+.sftp-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.xterm .xterm-scrollable-element > .scrollbar.vertical::before {
-  top: 4px;
-  border-bottom: 5px solid #666;
+.sftp-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.xterm .xterm-scrollable-element > .scrollbar.vertical::after {
-  bottom: 4px;
-  border-top: 5px solid #666;
+.sftp-list::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.5);
+  border-radius: 4px;
 }
 
-/* 滑块：方形、原生灰 */
-.xterm .xterm-scrollable-element > .scrollbar > .slider {
-  left: 1px !important;
-  right: 1px !important;
-  width: auto !important;
-  border-radius: 0 !important;
-  background: #c8c8c8 !important;
-  border: 1px solid #a8a8a8 !important;
+.sftp-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.75);
 }
-
-.xterm .xterm-scrollable-element > .scrollbar > .slider:hover,
-.xterm .xterm-scrollable-element > .scrollbar > .slider.active {
-  background: #b0b0b0 !important;
-}
-
-/* 滚动条使用系统原生样式（带箭头）——不做自定义，保持与操作系统一致 */
 
 .terminal-overlay {
   position: absolute;
