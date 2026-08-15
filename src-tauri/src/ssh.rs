@@ -184,7 +184,7 @@ pub fn open(
                 }
                 Err(e) => {
                     drop(ch);
-                    let msg = format!("{e}");
+                    let msg = format!("transport read 失败({:?}): {e}", e.kind());
                     logger::error(&format!("[session:{sid2}] {msg}"));
                     emit(
                         &app2,
@@ -197,10 +197,13 @@ pub fn open(
                     break;
                 }
             }
-            // 空闲时发送 keepalive（libssh2 需要主动调用才会发包）
+            // 空闲时发送 keepalive。必须与终端读写互斥（都经过 channel 锁），
+            // 否则并发访问 libssh2 session 会导致状态错乱（transport read / draining flow 类错误）。
             if last_keepalive.elapsed().as_secs() >= keepalive_interval {
-                if let Ok(sess) = session_keepalive.try_lock() {
-                    let _ = sess.keepalive_send();
+                if let Ok(_guard) = channel_reader.lock() {
+                    if let Ok(sess) = session_keepalive.try_lock() {
+                        let _ = sess.keepalive_send();
+                    }
                 }
                 last_keepalive = Instant::now();
             }
