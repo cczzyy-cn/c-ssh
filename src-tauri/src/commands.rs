@@ -294,6 +294,35 @@ pub fn clear_log() -> Result<(), String> {
     fs::write(logger::log_file(), "").map_err(|e| format!("清空日志失败: {e}"))
 }
 
+/// 打开本地命令行窗口（独立窗口，平台相关：Windows cmd / macOS Terminal / Linux 终端）。
+#[tauri::command]
+pub fn open_local_terminal() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "cmd.exe"])
+            .spawn()
+            .map_err(|e| format!("启动命令行失败: {e}"))?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-a", "Terminal"])
+            .spawn()
+            .map_err(|e| format!("启动终端失败: {e}"))?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        for term in ["x-terminal-emulator", "gnome-terminal", "konsole", "xterm"] {
+            if std::process::Command::new(term).spawn().is_ok() {
+                return Ok(());
+            }
+        }
+        return Err("未找到可用的终端程序".into());
+    }
+    Ok(())
+}
+
 /// 用系统文件管理器打开日志目录。
 #[tauri::command]
 pub fn open_log_dir() -> Result<(), String> {

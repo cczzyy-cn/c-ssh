@@ -197,6 +197,14 @@ select {
   font-size: var(--ui-fs-lg);
 }
 
+.tabbar-term {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-weight: 700;
+  font-size: var(--ui-fs);
+  letter-spacing: -1px;
+  margin-right: 2px;
+}
+
 .tabbar-file.on {
   color: var(--color-accent);
 }

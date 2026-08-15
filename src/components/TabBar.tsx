@@ -1,3 +1,4 @@
+import { api } from "../ipc";
 import { useTabs } from "../stores/tabs";
 
 export default function TabBar() {
@@ -31,6 +32,17 @@ export default function TabBar() {
         ))}
       </div>
       <div className="tabbar-right">
+        <button
+          className="icon-btn tabbar-term"
+          title="打开本地命令行窗口"
+          onClick={() =>
+            api
+              .openLocalTerminal()
+              .catch((e) => alert(`打开命令行失败: ${e}`))
+          }
+        >
+          &gt;_
+        </button>
         <button
           className={`icon-btn tabbar-file ${sftpVisible ? "on" : ""}`}
           disabled={!canSftp}

@@ -41,6 +41,7 @@ export const api = {
   readLog: (limit?: number) => invoke<string>("read_log", { limit }),
   clearLog: () => invoke<void>("clear_log"),
   openLogDir: () => invoke<void>("open_log_dir"),
+  openLocalTerminal: () => invoke<void>("open_local_terminal"),
 };
 
 export interface SftpEntry {
