@@ -482,23 +482,19 @@ select {
 
 /* 滚动条使用系统原生样式——不做自定义，保持与操作系统一致 */
 
-/* 文件栏滚动条：轨道背景透明，细条圆角滑块 */
+/* 文件栏滚动条：最初版本样式（8px 细条、主题色圆角滑块） */
 .sftp-list::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.sftp-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
 .sftp-list::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.5);
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 .sftp-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.75);
+  background: var(--color-fg-dim);
 }
 
 .terminal-overlay {
