@@ -184,6 +184,19 @@ export default function ConnectionForm({ conn, onClose }: Props) {
                 setOptions({ keepAliveInterval: Number(e.target.value) || 30 })
               }
             />
+            <span className="hint">空闲多久发送心跳保活（范围 3–3600）</span>
+          </label>
+
+          <label className="span-2">
+            高级：连接超时（秒）
+            <input
+              type="number"
+              value={form.options.connectTimeout}
+              onChange={(e) =>
+                setOptions({ connectTimeout: Number(e.target.value) || 10 })
+              }
+            />
+            <span className="hint">TCP 连接建立的最大等待时间（范围 3–60），超时快速报错不干等</span>
           </label>
 
           <label className="span-2">
