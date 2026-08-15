@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { open, save, confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
 import { api } from "../ipc";
 import { useConnections } from "../stores/connections";
 import { openConnection, openEcho } from "../stores/tabs";
@@ -71,7 +71,11 @@ export default function Sidebar() {
   };
 
   const handleDelete = async (conn: ConnectionConfig) => {
-    if (confirm(`确定删除连接「${conn.name}」？`)) {
+    const ok = await dialogConfirm(`确定删除连接「${conn.name}」？此操作不可恢复。`, {
+      title: "删除确认",
+      kind: "warning",
+    });
+    if (ok) {
       await remove(conn.id);
     }
   };

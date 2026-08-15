@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
 import { api } from "../ipc";
 
 export default function LogViewer({ onClose }: { onClose: () => void }) {
@@ -26,7 +27,11 @@ export default function LogViewer({ onClose }: { onClose: () => void }) {
   }, [content, autoScroll]);
 
   const handleClear = async () => {
-    if (!confirm("确定清空全部错误日志？")) return;
+    const ok = await dialogConfirm("确定清空全部错误日志？", {
+      title: "清空确认",
+      kind: "warning",
+    });
+    if (!ok) return;
     try {
       await api.clearLog();
       await refresh();

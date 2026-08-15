@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { open as dialogOpen, save as dialogSave } from "@tauri-apps/plugin-dialog";
+import { open as dialogOpen, save as dialogSave, confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
 import { api, type SftpEntry } from "../ipc";
 import { useTabs, type SftpState, type Tab } from "../stores/tabs";
 
@@ -203,7 +203,11 @@ export default function SftpPanel({ tab }: Props) {
 
   const handleDelete = async (entry: SftpEntry) => {
     if (!path) return;
-    if (!confirm(`确定删除「${entry.name}」？`)) return;
+    const ok = await dialogConfirm(`确定删除「${entry.name}」？此操作不可恢复。`, {
+      title: "删除确认",
+      kind: "warning",
+    });
+    if (!ok) return;
     try {
       await api.sftpDelete(tab.id, joinPath(path, entry.name), entry.isDir);
       await refresh(path);
