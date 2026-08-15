@@ -489,12 +489,9 @@ select {
   background: var(--color-fg-dim) !important;
 }
 
-/* ---- 全局统一滚动条样式（细条、圆角、跟随主题） ---- */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
-}
-
+/* ---- 全局统一滚动条样式（细条、圆角、跟随主题）。
+   注意：不能设置标准 scrollbar-width（它会在 Chromium 中压制
+   ::-webkit-scrollbar 的全部样式并渲染成原生带箭头滚动条）。 ---- */
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
