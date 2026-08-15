@@ -17,6 +17,7 @@ export const api = {
   testConnection: (id: string) => invoke<void>("test_connection", { id }),
   openSession: (connId: string) => invoke<string>("open_session", { connId }),
   openEchoSession: () => invoke<string>("open_echo_session"),
+  openLocalShell: () => invoke<string>("open_local_shell"),
   writeInput: (sessionId: string, data: string) =>
     invoke<void>("write_input", { sessionId, data }),
   resize: (sessionId: string, cols: number, rows: number) =>

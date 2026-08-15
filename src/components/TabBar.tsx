@@ -1,5 +1,4 @@
-import { api } from "../ipc";
-import { useTabs } from "../stores/tabs";
+import { openLocalShell, useTabs } from "../stores/tabs";
 
 export default function TabBar() {
   const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen } = useTabs();
@@ -34,12 +33,8 @@ export default function TabBar() {
       <div className="tabbar-right">
         <button
           className="icon-btn tabbar-term"
-          title="打开本地命令行窗口"
-          onClick={() =>
-            api
-              .openLocalTerminal()
-              .catch((e) => alert(`打开命令行失败: ${e}`))
-          }
+          title="打开本地命令行（软件内）"
+          onClick={() => openLocalShell().catch(() => undefined)}
         >
           &gt;_
         </button>

@@ -167,6 +167,38 @@ export async function openEcho(): Promise<void> {
   setStatus(sid, "connected");
 }
 
+/** 打开软件内本地命令行（portable-pty 会话，无 connId 故不支持 SFTP）。 */
+export async function openLocalShell(): Promise<void> {
+  const { addTab } = useTabs.getState();
+  const pendingId = `local-${Date.now()}`;
+  addTab({
+    id: pendingId,
+    title: "本地命令行",
+    status: "connecting",
+    pending: true,
+  });
+  let sid: string;
+  try {
+    sid = await api.openLocalShell();
+  } catch (e) {
+    await useTabs.getState().closeTab(pendingId);
+    alert(`打开本地命令行失败: ${e}`);
+    return;
+  }
+  useTabs.setState((s) => {
+    const cur = s.tabs.find((t) => t.id === pendingId);
+    if (!cur) return s;
+    return {
+      tabs: s.tabs.map((t) =>
+        t.id === pendingId
+          ? { ...t, id: sid, status: "connected" as TabStatus, pending: false }
+          : t,
+      ),
+      activeId: s.activeId === pendingId ? sid : s.activeId,
+    };
+  });
+}
+
 /** 断线自动重连：延迟后重开会话并替换 tab.id；失败则递增间隔重试。 */
 export function scheduleReconnect(sessionId: string, delayMs = 3000): void {
   setTimeout(async () => {

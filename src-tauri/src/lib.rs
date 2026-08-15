@@ -20,6 +20,7 @@ pub fn run() {
             commands::import_connections,
             commands::open_session,
             commands::open_echo_session,
+            commands::open_local_shell,
             commands::write_input,
             commands::resize,
             commands::close_session,

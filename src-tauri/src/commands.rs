@@ -134,6 +134,16 @@ pub async fn open_echo_session(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub async fn open_local_shell(app: AppHandle) -> Result<String, String> {
+    let handle = app.clone();
+    run_blocking("open_local_shell", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::open_local_shell(handle.clone(), &mgr)
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn write_input(app: AppHandle, session_id: String, data: String) -> Result<(), String> {
     let handle = app.clone();
     run_blocking("write_input", move || {

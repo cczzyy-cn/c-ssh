@@ -27,5 +27,6 @@ dirs = "6"
 # 注意：keyring 3 默认无任何平台后端，必须显式启用，否则密码存不进系统凭据管理器
 keyring = { version = "3", features = ["windows-native", "apple-native", "linux-native"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+portable-pty = "0.8"
 uuid = { version = "1", features = ["v4"] }
 base64 = "0.22"

@@ -1,4 +1,5 @@
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
 use serde::Serialize;
 use ssh2::{Channel, Session, Sftp};
 use std::collections::HashMap;
@@ -53,6 +54,12 @@ pub enum SessionKind {
     Ssh(SshSession),
     /// 本地演示（echo）会话：无需网络，用于无服务器时验证终端链路。
     Echo { tx: Sender<String> },
+    /// 本地 shell 会话（portable-pty）：软件内打开本机命令行。
+    Local {
+        writer: Arc<Mutex<Box<dyn Write + Send>>>,
+        master: Arc<Mutex<Box<dyn MasterPty + Send>>>,
+        child: Arc<Mutex<Box<dyn Child + Send + Sync>>>,
+    },
 }
 
 pub struct SshSession {
@@ -103,6 +110,90 @@ pub fn open_echo(app: AppHandle, mgr: &SessionManager) -> Result<String, String>
         sid.clone(),
         Arc::new(Mutex::new(LiveSession {
             kind: SessionKind::Echo { tx },
+        })),
+    );
+    Ok(sid)
+}
+
+/// 打开软件内本地命令行会话：portable-pty 启动本机 shell，复用终端通道。
+pub fn open_local_shell(app: AppHandle, mgr: &SessionManager) -> Result<String, String> {
+    let pty_system = native_pty_system();
+    let pair = pty_system
+        .openpty(PtySize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .map_err(|e| format!("创建伪终端失败: {e}"))?;
+
+    let shell = if cfg!(windows) {
+        "cmd.exe".to_string()
+    } else {
+        std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".into())
+    };
+    let cmd = CommandBuilder::new(shell);
+    let child = pair
+        .slave
+        .spawn_command(cmd)
+        .map_err(|e| format!("启动 shell 失败: {e}"))?;
+    drop(pair.slave);
+
+    let mut reader = pair
+        .master
+        .try_clone_reader()
+        .map_err(|e| format!("获取 PTY 读端失败: {e}"))?;
+    let writer = pair
+        .master
+        .take_writer()
+        .map_err(|e| format!("获取 PTY 写端失败: {e}"))?;
+    let master = pair.master;
+
+    let sid = uuid::Uuid::new_v4().to_string();
+    let app2 = app.clone();
+    let sid2 = sid.clone();
+    // 后台读线程：推送本地 shell 输出
+    std::thread::spawn(move || {
+        let mut buf = [0u8; READ_BUF];
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    emit(
+                        &app2,
+                        "term:data",
+                        TermData {
+                            session_id: sid2.clone(),
+                            data: B64.encode(&buf[..n]),
+                        },
+                    );
+                }
+                Err(e) => {
+                    let msg = format!("本地 shell 读取失败({:?}): {e}", e.kind());
+                    logger::error(&format!("[session:{sid2}] {msg}"));
+                    emit(
+                        &app2,
+                        "term:error",
+                        TermError {
+                            session_id: sid2.clone(),
+                            message: msg,
+                        },
+                    );
+                    break;
+                }
+            }
+        }
+        emit(&app2, "term:exit", TermExit { session_id: sid2, code: 0 });
+    });
+
+    mgr.sessions.lock().unwrap().insert(
+        sid.clone(),
+        Arc::new(Mutex::new(LiveSession {
+            kind: SessionKind::Local {
+                writer: Arc::new(Mutex::new(writer)),
+                master: Arc::new(Mutex::new(master)),
+                child: Arc::new(Mutex::new(child)),
+            },
         })),
     );
     Ok(sid)
@@ -490,6 +581,10 @@ pub fn write_input(mgr: &SessionManager, sid: &str, data: &str) -> Result<(), St
             tx.send(data.to_string()).map_err(|e| format!("写入失败: {e}"))?;
             Ok(())
         }
+        SessionKind::Local { writer, .. } => {
+            let mut w = writer.lock().unwrap();
+            w.write_all(&decoded).map_err(|e| format!("写入失败: {e}"))
+        }
     }
 }
 
@@ -506,6 +601,14 @@ pub fn resize(mgr: &SessionManager, sid: &str, cols: u32, rows: u32) -> Result<(
         let mut ch = ssh.channel.lock().unwrap();
         // 非阻塞下可能 WouldBlock，忽略；前端 fit 会再次触发尺寸同步
         let _ = ch.request_pty_size(cols, rows, None, None);
+    } else if let SessionKind::Local { master, .. } = &ls.kind {
+        let m = master.lock().unwrap();
+        let _ = m.resize(PtySize {
+            rows: rows as u16,
+            cols: cols as u16,
+            pixel_width: 0,
+            pixel_height: 0,
+        });
     }
     Ok(())
 }
@@ -515,10 +618,17 @@ pub fn close_session(mgr: &SessionManager, sid: &str) -> Result<(), String> {
     let mut map = mgr.sessions.lock().unwrap();
     if let Some(ls) = map.get(sid) {
         let ls = ls.lock().unwrap();
-        if let SessionKind::Ssh(ssh) = &ls.kind {
-            let mut ch = ssh.channel.lock().unwrap();
-            ch.send_eof().ok();
-            ch.close().ok();
+        match &ls.kind {
+            SessionKind::Ssh(ssh) => {
+                let mut ch = ssh.channel.lock().unwrap();
+                ch.send_eof().ok();
+                ch.close().ok();
+            }
+            SessionKind::Local { child, .. } => {
+                // 终止本地 shell 进程，PTY 读线程随即退出
+                child.lock().unwrap().kill().ok();
+            }
+            SessionKind::Echo { .. } => {}
         }
     }
     map.remove(sid);
@@ -664,7 +774,7 @@ fn sftp_do<T>(
     let ls = map.get(sid).ok_or("会话不存在")?;
     let ls = ls.lock().unwrap();
     let SessionKind::Ssh(ssh) = &ls.kind else {
-        return Err("演示会话不支持 SFTP".into());
+        return Err("该会话不支持 SFTP".into());
     };
 
     let busy = ssh.sftp_busy.clone();
