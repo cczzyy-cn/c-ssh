@@ -467,23 +467,14 @@ select {
   overflow: hidden;
 }
 
-/* xterm 5 自定义滚动条：外观与文件栏原生滚动条一致（8px 容器、4px 圆滑条、主题色） */
+/* 终端滚动条与文件栏一模一样：隐藏 xterm 自定义 div 滚动条，
+   使用原生滚动条（走全局 *::-webkit-scrollbar 统一样式） */
 .xterm .xterm-scrollable-element > .scrollbar {
-  width: 8px !important;
-  background: transparent !important;
-  border: none !important;
+  display: none !important;
 }
 
-.xterm .xterm-scrollable-element > .scrollbar > .slider {
-  width: 4px !important;
-  margin: 0 auto !important;
-  border-radius: 4px !important;
-  background: var(--color-border) !important;
-}
-
-.xterm .xterm-scrollable-element > .scrollbar > .slider:hover,
-.xterm .xterm-scrollable-element > .scrollbar > .slider.active {
-  background: var(--color-fg-dim) !important;
+.xterm .xterm-viewport {
+  overflow-y: scroll !important;
 }
 
 /* ---- 全局统一滚动条样式（细条、圆角、跟随主题） ---- */
