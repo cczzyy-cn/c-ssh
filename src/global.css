@@ -154,8 +154,10 @@ select {
 .center-col {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* ---- 标签栏 ---- */
@@ -453,12 +455,28 @@ select {
 .terminal-pane {
   position: absolute;
   inset: 0;
+  overflow: hidden;
 }
 
 .terminal-container {
   position: absolute;
   inset: 0;
   padding: 6px;
+  overflow: hidden;
+}
+
+/* xterm 滚动条细化为窄条（保留回滚功能，不显突兀） */
+.xterm .xterm-viewport {
+  scrollbar-width: thin;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
 }
 
 .terminal-overlay {

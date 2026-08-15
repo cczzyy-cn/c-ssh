@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::logger;
 use crate::ssh::{self, SessionManager};
@@ -14,7 +14,19 @@ fn log_err<T>(cmd: &str, r: Result<T, String>) -> Result<T, String> {
     r
 }
 
-// ---- 连接配置 ----
+/// 在阻塞线程池执行可能耗时的操作（网络/锁等待），避免卡住主线程与其它窗口。
+async fn run_blocking<T, F>(cmd: &str, f: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    let r = tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?;
+    log_err(cmd, r)
+}
+
+// ---- 连接配置（快速文件操作，保持同步） ----
 
 #[tauri::command]
 pub fn list_connections(store: State<'_, Store>) -> Result<Vec<ConnectionConfig>, String> {
@@ -86,123 +98,154 @@ pub fn import_connections(store: State<'_, Store>, path: String) -> Result<usize
     log_err("import_connections", r)
 }
 
-// ---- 会话 ----
+// ---- 会话（网络/锁操作，异步执行避免阻塞 UI） ----
 
 #[tauri::command]
-pub fn test_connection(store: State<'_, Store>, id: String) -> Result<(), String> {
-    let conn = store.get_connection(&id).ok_or("连接不存在")?;
-    log_err("test_connection", ssh::test(&conn, &store))
+pub async fn test_connection(app: AppHandle, id: String) -> Result<(), String> {
+    let conn = app.state::<Store>().get_connection(&id).ok_or("连接不存在")?;
+    let handle = app.clone();
+    run_blocking("test_connection", move || {
+        let store = handle.state::<Store>();
+        ssh::test(&conn, &store)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn open_session(
+pub async fn open_session(app: AppHandle, conn_id: String) -> Result<String, String> {
+    let conn = app.state::<Store>().get_connection(&conn_id).ok_or("连接不存在")?;
+    let handle = app.clone();
+    run_blocking("open_session", move || {
+        let store = handle.state::<Store>();
+        let mgr = handle.state::<SessionManager>();
+        ssh::open(handle.clone(), &mgr, &store, &conn)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn open_echo_session(app: AppHandle) -> Result<String, String> {
+    let handle = app.clone();
+    run_blocking("open_echo_session", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::open_echo(handle.clone(), &mgr)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn write_input(app: AppHandle, session_id: String, data: String) -> Result<(), String> {
+    let handle = app.clone();
+    run_blocking("write_input", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::write_input(&mgr, &session_id, &data)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn resize(app: AppHandle, session_id: String, cols: u32, rows: u32) -> Result<(), String> {
+    let handle = app.clone();
+    run_blocking("resize", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::resize(&mgr, &session_id, cols, rows)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn close_session(app: AppHandle, session_id: String) -> Result<(), String> {
+    let handle = app.clone();
+    run_blocking("close_session", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::close_session(&mgr, &session_id)
+    })
+    .await
+}
+
+// ---- SFTP（网络操作，异步执行） ----
+
+#[tauri::command]
+pub async fn sftp_list(
     app: AppHandle,
-    store: State<'_, Store>,
-    mgr: State<'_, SessionManager>,
-    conn_id: String,
-) -> Result<String, String> {
-    let conn = store.get_connection(&conn_id).ok_or("连接不存在")?;
-    log_err("open_session", ssh::open(app, &mgr, &store, &conn))
-}
-
-#[tauri::command]
-pub fn open_echo_session(app: AppHandle, mgr: State<'_, SessionManager>) -> Result<String, String> {
-    log_err("open_echo_session", ssh::open_echo(app, &mgr))
-}
-
-#[tauri::command]
-pub fn write_input(
-    mgr: State<'_, SessionManager>,
-    session_id: String,
-    data: String,
-) -> Result<(), String> {
-    log_err("write_input", ssh::write_input(&mgr, &session_id, &data))
-}
-
-#[tauri::command]
-pub fn resize(
-    mgr: State<'_, SessionManager>,
-    session_id: String,
-    cols: u32,
-    rows: u32,
-) -> Result<(), String> {
-    log_err("resize", ssh::resize(&mgr, &session_id, cols, rows))
-}
-
-#[tauri::command]
-pub fn close_session(
-    mgr: State<'_, SessionManager>,
-    session_id: String,
-) -> Result<(), String> {
-    log_err("close_session", ssh::close_session(&mgr, &session_id))
-}
-
-// ---- SFTP ----
-
-#[tauri::command]
-pub fn sftp_list(
-    mgr: State<'_, SessionManager>,
     session_id: String,
     path: String,
 ) -> Result<Vec<ssh::SftpEntry>, String> {
-    log_err("sftp_list", ssh::sftp_list(&mgr, &session_id, &path))
+    let handle = app.clone();
+    run_blocking("sftp_list", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::sftp_list(&mgr, &session_id, &path)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn sftp_download(
-    mgr: State<'_, SessionManager>,
+pub async fn sftp_download(
+    app: AppHandle,
     session_id: String,
     remote_path: String,
     local_path: String,
 ) -> Result<(), String> {
-    log_err(
-        "sftp_download",
-        ssh::sftp_download(&mgr, &session_id, &remote_path, &local_path),
-    )
+    let handle = app.clone();
+    run_blocking("sftp_download", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::sftp_download(&mgr, &session_id, &remote_path, &local_path)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn sftp_upload(
-    mgr: State<'_, SessionManager>,
+pub async fn sftp_upload(
+    app: AppHandle,
     session_id: String,
     local_path: String,
     remote_path: String,
 ) -> Result<(), String> {
-    log_err(
-        "sftp_upload",
-        ssh::sftp_upload(&mgr, &session_id, &local_path, &remote_path),
-    )
+    let handle = app.clone();
+    run_blocking("sftp_upload", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::sftp_upload(&mgr, &session_id, &local_path, &remote_path)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn sftp_mkdir(
-    mgr: State<'_, SessionManager>,
-    session_id: String,
-    path: String,
-) -> Result<(), String> {
-    log_err("sftp_mkdir", ssh::sftp_mkdir(&mgr, &session_id, &path))
+pub async fn sftp_mkdir(app: AppHandle, session_id: String, path: String) -> Result<(), String> {
+    let handle = app.clone();
+    run_blocking("sftp_mkdir", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::sftp_mkdir(&mgr, &session_id, &path)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn sftp_realpath(
-    mgr: State<'_, SessionManager>,
-    session_id: String,
-    path: String,
-) -> Result<String, String> {
-    log_err("sftp_realpath", ssh::sftp_realpath(&mgr, &session_id, &path))
-}
-
-#[tauri::command]
-pub fn sftp_delete(
-    mgr: State<'_, SessionManager>,
+pub async fn sftp_delete(
+    app: AppHandle,
     session_id: String,
     path: String,
     is_dir: bool,
 ) -> Result<(), String> {
-    log_err(
-        "sftp_delete",
-        ssh::sftp_delete(&mgr, &session_id, &path, is_dir),
-    )
+    let handle = app.clone();
+    run_blocking("sftp_delete", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::sftp_delete(&mgr, &session_id, &path, is_dir)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn sftp_realpath(
+    app: AppHandle,
+    session_id: String,
+    path: String,
+) -> Result<String, String> {
+    let handle = app.clone();
+    run_blocking("sftp_realpath", move || {
+        let mgr = handle.state::<SessionManager>();
+        ssh::sftp_realpath(&mgr, &session_id, &path)
+    })
+    .await
 }
 
 // ---- 全局错误日志 ----
