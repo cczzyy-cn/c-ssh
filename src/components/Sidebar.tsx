@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { api } from "../ipc";
 import { useConnections } from "../stores/connections";
@@ -13,6 +13,39 @@ export default function Sidebar() {
   const [editing, setEditing] = useState<ConnectionConfig | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  // 侧边栏宽度（可拖拽调整，持久化）
+  const [width, setWidth] = useState(() => {
+    try {
+      return Number(localStorage.getItem("c-ssh:sidebar-width")) || 260;
+    } catch {
+      return 260;
+    }
+  });
+  const [dragging, setDragging] = useState(false);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const onMove = (ev: MouseEvent) => {
+      const w = Math.min(480, Math.max(180, ev.clientX));
+      setWidth(w);
+    };
+    const onUp = () => {
+      setDragging(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      try {
+        localStorage.setItem("c-ssh:sidebar-width", String(widthRef.current));
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const widthRef = useRef(width);
+  widthRef.current = width;
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -84,20 +117,22 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${dragging ? "resizing" : ""}`} style={{ width }}>
       <div className="sidebar-header">
-        <span className="brand">c-ssh</span>
-        <button className="btn btn-primary btn-sm" onClick={() => { setEditing(null); setShowForm(true); }}>
+        <input
+          className="search"
+          placeholder="搜索连接…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button
+          className="btn btn-primary btn-sm sidebar-new"
+          title="新建连接"
+          onClick={() => { setEditing(null); setShowForm(true); }}
+        >
           + 新建
         </button>
       </div>
-
-      <input
-        className="search"
-        placeholder="搜索连接…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
 
       <div className="conn-list">
         {groups.length === 0 && (
@@ -158,6 +193,12 @@ export default function Sidebar() {
         />
       )}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {/* 拖拽调整侧边栏宽度 */}
+      <div
+        className="sidebar-resizer"
+        onMouseDown={startResize}
+        title="拖动调整宽度"
+      />
     </aside>
   );
 }

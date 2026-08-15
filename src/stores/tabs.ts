@@ -6,7 +6,7 @@ import type { ConnectionConfig } from "../types";
 export type TabStatus = "connecting" | "connected" | "closed" | "error";
 
 export interface Tab {
-  /** 会话 id（sessionId） */
+  /** 会话 id（sessionId）；pending 连接时为临时占位 id */
   id: string;
   connId?: string;
   title: string;
@@ -16,13 +16,20 @@ export interface Tab {
   theme?: string;
   /** 断线自动重连 */
   autoReconnect?: boolean;
+  /** 正在建立连接（尚无真实 sessionId） */
+  pending?: boolean;
 }
+
+/** 每个 session 未消费的终端数据缓冲上限（条数），防止内存膨胀 */
+const PENDING_DATA_MAX = 64;
 
 interface TabsState {
   tabs: Tab[];
   activeId: string | null;
   /** sessionId -> xterm Terminal 实例（供全局 term:data 分发） */
   terminals: Record<string, Terminal>;
+  /** sessionId -> 终端未注册前到达的数据缓冲（注册后回放） */
+  pendingData: Record<string, Uint8Array[]>;
   /** sessionId -> SFTP 面板是否打开 */
   sftpOpen: Record<string, boolean>;
   addTab: (tab: Tab) => void;
@@ -31,6 +38,7 @@ interface TabsState {
   setStatus: (id: string, status: TabStatus, error?: string) => void;
   registerTerminal: (id: string, term: Terminal) => void;
   unregisterTerminal: (id: string) => void;
+  bufferData: (id: string, bytes: Uint8Array) => void;
   setSftpOpen: (id: string, open: boolean) => void;
 }
 
@@ -38,6 +46,7 @@ export const useTabs = create<TabsState>((set, get) => ({
   tabs: [],
   activeId: null,
   terminals: {},
+  pendingData: {},
   sftpOpen: {},
   addTab: (tab) =>
     set((s) => ({ tabs: [...s.tabs, tab], activeId: tab.id })),
@@ -52,11 +61,14 @@ export const useTabs = create<TabsState>((set, get) => ({
       const tabs = s.tabs.filter((t) => t.id !== id);
       const terminals = { ...s.terminals };
       delete terminals[id];
+      const pendingData = { ...s.pendingData };
+      delete pendingData[id];
       const sftpOpen = { ...s.sftpOpen };
       delete sftpOpen[id];
       return {
         tabs,
         terminals,
+        pendingData,
         sftpOpen,
         activeId: s.activeId === id ? (tabs.length ? tabs[tabs.length - 1].id : null) : s.activeId,
       };
@@ -68,35 +80,74 @@ export const useTabs = create<TabsState>((set, get) => ({
       tabs: s.tabs.map((t) => (t.id === id ? { ...t, status, error } : t)),
     })),
   registerTerminal: (id, term) =>
-    set((s) => ({ terminals: { ...s.terminals, [id]: term } })),
+    set((s) => {
+      // 注册时回放缓冲数据（连接建立后 shell banner 早于终端挂载到达的情况）
+      const pending = s.pendingData[id];
+      const pendingData = { ...s.pendingData };
+      delete pendingData[id];
+      if (pending) {
+        for (const chunk of pending) term.write(chunk);
+      }
+      return { terminals: { ...s.terminals, [id]: term }, pendingData };
+    }),
   unregisterTerminal: (id) =>
     set((s) => {
       const terminals = { ...s.terminals };
       delete terminals[id];
       return { terminals };
     }),
+  bufferData: (id, bytes) =>
+    set((s) => {
+      const list = s.pendingData[id] ?? [];
+      if (list.length >= PENDING_DATA_MAX) list.shift();
+      return { pendingData: { ...s.pendingData, [id]: [...list, bytes] } };
+    }),
   setSftpOpen: (id, open) =>
     set((s) => ({ sftpOpen: { ...s.sftpOpen, [id]: open } })),
 }));
 
+/** 打开连接：先建 pending 占位 tab（立即反馈"正在连接"），成功后替换为真实会话。 */
 export async function openConnection(conn: ConnectionConfig): Promise<void> {
-  const { addTab, setStatus } = useTabs.getState();
+  const { addTab } = useTabs.getState();
+  const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  addTab({
+    id: pendingId,
+    connId: conn.id,
+    title: conn.name,
+    status: "connecting",
+    pending: true,
+  });
   let sid: string;
   try {
     sid = await api.openSession(conn.id);
   } catch (e) {
+    await useTabs.getState().closeTab(pendingId);
     alert(`连接失败: ${e}`);
     return;
   }
-  addTab({
-    id: sid,
-    connId: conn.id,
-    title: conn.name,
-    status: "connecting",
-    theme: conn.theme,
-    autoReconnect: conn.options.autoReconnect,
+  useTabs.setState((s) => {
+    const cur = s.tabs.find((t) => t.id === pendingId);
+    if (!cur) return s;
+    const sftpOpen = { ...s.sftpOpen };
+    sftpOpen[sid] = !!sftpOpen[pendingId];
+    delete sftpOpen[pendingId];
+    return {
+      tabs: s.tabs.map((t) =>
+        t.id === pendingId
+          ? {
+              ...t,
+              id: sid,
+              status: "connected" as TabStatus,
+              pending: false,
+              theme: conn.theme,
+              autoReconnect: conn.options.autoReconnect,
+            }
+          : t,
+      ),
+      activeId: s.activeId === pendingId ? sid : s.activeId,
+      sftpOpen,
+    };
   });
-  setStatus(sid, "connected");
 }
 
 export async function openEcho(): Promise<void> {
@@ -121,12 +172,19 @@ export function scheduleReconnect(sessionId: string, delayMs = 3000): void {
         const sftpOpen = { ...s.sftpOpen };
         sftpOpen[sid] = !!sftpOpen[sessionId];
         delete sftpOpen[sessionId];
+        // 旧会话的未消费缓冲迁移到新会话
+        const pendingData = { ...s.pendingData };
+        if (pendingData[sessionId]) {
+          pendingData[sid] = pendingData[sessionId];
+        }
+        delete pendingData[sessionId];
         return {
           tabs: s.tabs.map((t) =>
             t.id === sessionId ? { ...t, id: sid, status: "connected" as TabStatus, error: undefined } : t,
           ),
           activeId: s.activeId === sessionId ? sid : s.activeId,
           sftpOpen,
+          pendingData,
         };
       });
     } catch (e) {

@@ -25,7 +25,7 @@ export default function TerminalPane({ tab, active }: { tab: Tab; active: boolea
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || tab.pending) return; // pending 连接：暂无真实会话，显示占位
     const term = new Terminal({
       fontSize,
       fontFamily: '"Cascadia Mono", Consolas, monospace',
@@ -160,33 +160,42 @@ export default function TerminalPane({ tab, active }: { tab: Tab; active: boolea
 
   return (
     <div className="terminal-pane">
-      {showSearch && (
-        <div className="search-bar">
-          <input
-            ref={searchInputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") doSearch(e.shiftKey ? -1 : 1);
-              if (e.key === "Escape") setShowSearch(false);
-            }}
-            placeholder="搜索（Enter 下一个，Shift+Enter 上一个）"
-          />
-          <button className="icon-btn" title="上一个" onClick={() => doSearch(-1)}>▲</button>
-          <button className="icon-btn" title="下一个" onClick={() => doSearch(1)}>▼</button>
-          <button className="icon-btn" title="关闭" onClick={() => setShowSearch(false)}>✕</button>
+      {tab.pending ? (
+        <div className="terminal-pending">
+          <div className="terminal-pending-spinner" />
+          <div>正在连接…</div>
         </div>
-      )}
-      <div ref={containerRef} className="terminal-container" />
-      {(tab.status === "closed" || tab.status === "error") && (
-        <div className="terminal-overlay">
-          <div className="overlay-text">
-            {tab.status === "error" ? `连接中断: ${tab.error ?? "未知错误"}` : "会话已结束"}
-          </div>
-          <button className="btn" onClick={() => useTabs.getState().closeTab(tab.id)}>
-            关闭标签
-          </button>
-        </div>
+      ) : (
+        <>
+          {showSearch && (
+            <div className="search-bar">
+              <input
+                ref={searchInputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") doSearch(e.shiftKey ? -1 : 1);
+                  if (e.key === "Escape") setShowSearch(false);
+                }}
+                placeholder="搜索（Enter 下一个，Shift+Enter 上一个）"
+              />
+              <button className="icon-btn" title="上一个" onClick={() => doSearch(-1)}>▲</button>
+              <button className="icon-btn" title="下一个" onClick={() => doSearch(1)}>▼</button>
+              <button className="icon-btn" title="关闭" onClick={() => setShowSearch(false)}>✕</button>
+            </div>
+          )}
+          <div ref={containerRef} className="terminal-container" />
+          {(tab.status === "closed" || tab.status === "error") && (
+            <div className="terminal-overlay">
+              <div className="overlay-text">
+                {tab.status === "error" ? `连接中断: ${tab.error ?? "未知错误"}` : "会话已结束"}
+              </div>
+              <button className="btn" onClick={() => useTabs.getState().closeTab(tab.id)}>
+                关闭标签
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

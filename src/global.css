@@ -107,12 +107,33 @@ select {
 }
 
 .sidebar {
-  width: 260px;
-  min-width: 260px;
   background: var(--color-bg-alt);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
+  position: relative;
+  min-width: 180px;
+}
+
+.sidebar.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* 侧边栏宽度拖拽把手 */
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.sidebar-resizer:hover {
+  background: var(--color-accent);
+  opacity: 0.6;
 }
 
 .main {
@@ -379,6 +400,34 @@ select {
   z-index: 10;
 }
 
+/* 连接中占位 */
+.terminal-pending {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-fg-dim);
+  font-size: 13px;
+}
+
+.terminal-pending-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .overlay-text {
   color: var(--color-fg-dim);
 }
@@ -387,17 +436,17 @@ select {
 .sidebar-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   padding: 10px;
 }
 
-.brand {
-  font-weight: 700;
-  font-size: 15px;
+.sidebar-new {
+  flex-shrink: 0;
 }
 
 .search {
-  margin: 0 10px 8px;
+  flex: 1;
+  min-width: 0;
   padding: 6px 8px;
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);

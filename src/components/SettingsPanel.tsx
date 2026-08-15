@@ -106,9 +106,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               <button className="btn btn-sm" onClick={() => setShowLog(true)}>
                 👁 查看错误日志
               </button>
-              <button className="btn btn-sm" onClick={() => api.openLogDir().catch((e) => alert(e))}>
-                📂 打开日志目录
-              </button>
             </div>
           </div>
         </div>

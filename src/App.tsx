@@ -29,8 +29,16 @@ export default function App() {
     (async () => {
       unlisteners.push(
         await onTermEvent<TermDataEvent>("term:data", (p) => {
-          const term = useTabs.getState().terminals[p.sessionId];
-          if (term) term.write(b64ToBytes(p.data));
+          const bytes = b64ToBytes(p.data);
+          const { terminals, pendingData, bufferData } = useTabs.getState();
+          const term = terminals[p.sessionId];
+          if (term) {
+            term.write(bytes);
+          } else {
+            // 终端尚未挂载（连接刚建立），缓冲数据待注册后回放
+            void pendingData;
+            bufferData(p.sessionId, bytes);
+          }
         }),
       );
       unlisteners.push(

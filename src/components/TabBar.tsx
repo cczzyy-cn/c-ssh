@@ -13,7 +13,7 @@ export default function TabBar() {
         >
           <span className={`status-dot ${t.status}`} />
           <span className="tab-title">{t.title}</span>
-          {t.connId && (
+          {t.connId && !t.pending && (
             <button
               className={`icon-btn tab-sftp ${sftpOpen[t.id] ? "on" : ""}`}
               title="SFTP 文件面板"
