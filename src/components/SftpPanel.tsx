@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
+import { open as dialogOpen, save as dialogSave } from "@tauri-apps/plugin-dialog";
 import { api, type SftpEntry } from "../ipc";
 import { useTabs, type SftpState, type Tab } from "../stores/tabs";
 
@@ -163,7 +163,8 @@ export default function SftpPanel({ tab }: Props) {
 
   const handleDownload = async (entry: SftpEntry) => {
     if (!path) return;
-    const local = await dialogOpen({
+    // 保存对话框：可浏览并选择任意目录 + 输入文件名
+    const local = await dialogSave({
       title: "保存到",
       defaultPath: entry.name,
     });
