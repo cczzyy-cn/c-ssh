@@ -487,11 +487,24 @@ select {
   background: transparent !important;
 }
 
-.xterm .xterm-viewport,
-.xterm .xterm-screen,
-.xterm {
+/* 从根上消灭 xterm 滚动条：viewport 去掉 overflow 滚动容器。
+   xterm 回滚由内部 scrollTop 控制（滚轮 / Shift+PageUp 仍可用）。 */
+.xterm .xterm-viewport {
+  overflow-y: hidden !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.xterm,
+.xterm .xterm-screen {
+  overflow: hidden !important;
 }
 
 .terminal-overlay {
