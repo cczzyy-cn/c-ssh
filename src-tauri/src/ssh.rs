@@ -241,11 +241,12 @@ pub fn test(conn: &ConnectionConfig, store: &Store) -> Result<(), String> {
 
 /// 建立 TCP 连接；若配置了代理则先走代理握手（SOCKS5 / HTTP CONNECT）。
 fn connect_tcp(conn: &ConnectionConfig) -> Result<TcpStream, String> {
+    let timeout = Duration::from_secs(conn.options.connect_timeout.clamp(3, 60));
     match &conn.options.proxy {
-        None => TcpStream::connect((conn.host.as_str(), conn.port))
+        None => connect_with_timeout(&conn.host, conn.port, timeout)
             .map_err(|e| format!("连接 {}:{} 失败: {}", conn.host, conn.port, e)),
         Some(proxy) => {
-            let stream = TcpStream::connect((proxy.host.as_str(), proxy.port))
+            let stream = connect_with_timeout(&proxy.host, proxy.port, timeout)
                 .map_err(|e| format!("连接代理 {}:{} 失败: {}", proxy.host, proxy.port, e))?;
             match proxy.proxy_type.as_str() {
                 "socks5" => socks5_handshake(stream, proxy, &conn.host, conn.port),
@@ -254,6 +255,22 @@ fn connect_tcp(conn: &ConnectionConfig) -> Result<TcpStream, String> {
             }
         }
     }
+}
+
+/// 带超时的 TCP 连接（DNS 解析后逐个地址尝试，总超时受 connect_timeout 控制）。
+fn connect_with_timeout(host: &str, port: u16, timeout: Duration) -> Result<TcpStream, String> {
+    use std::net::ToSocketAddrs;
+    let addrs = (host, port)
+        .to_socket_addrs()
+        .map_err(|e| format!("DNS 解析失败: {e}"))?;
+    let mut last_err: Option<String> = None;
+    for addr in addrs {
+        match TcpStream::connect_timeout(&addr, timeout) {
+            Ok(s) => return Ok(s),
+            Err(e) => last_err = Some(e.to_string()),
+        }
+    }
+    Err(last_err.unwrap_or_else(|| "无可连接地址".into()))
 }
 
 /// SOCKS5 握手：无认证或用户名/密码认证，然后 CONNECT 目标。
