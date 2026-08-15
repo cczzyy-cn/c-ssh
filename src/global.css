@@ -467,15 +467,13 @@ select {
   overflow: hidden;
 }
 
-/* xterm 自定义滚动条：强制常显，外观复刻文件栏原生滚动条
-   （8px 透明轨道 + 4px 居中圆滑条 + 主题色 + hover 变亮） */
+/* xterm 自定义滚动条：外观与文件栏一致（8px 透明轨道 + 4px 居中圆滑条 + 主题色 + hover 变亮）；
+   显隐交给 xterm 的 visible/invisible 机制（内容可滚时显示，与文件栏行为一致） */
 .xterm .xterm-scrollable-element > .scrollbar {
   display: block !important;
   width: 8px !important;
   background: transparent !important;
   border: none !important;
-  opacity: 1 !important;
-  visibility: visible !important;
 }
 
 .xterm .xterm-scrollable-element > .scrollbar > .slider {
