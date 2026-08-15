@@ -128,8 +128,8 @@ export async function openConnection(conn: ConnectionConfig): Promise<void> {
   useTabs.setState((s) => {
     const cur = s.tabs.find((t) => t.id === pendingId);
     if (!cur) return s;
-    const sftpOpen = { ...s.sftpOpen };
-    sftpOpen[sid] = !!sftpOpen[pendingId];
+    // 连接成功后默认打开右侧文件栏（SFTP 面板）
+    const sftpOpen = { ...s.sftpOpen, [sid]: true };
     delete sftpOpen[pendingId];
     return {
       tabs: s.tabs.map((t) =>

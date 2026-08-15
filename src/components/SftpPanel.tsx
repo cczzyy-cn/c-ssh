@@ -159,8 +159,10 @@ export default function SftpPanel({ tab }: Props) {
   return (
     <div className="sftp-panel">
       <div className="sftp-header">
-        <span className="sftp-title">SFTP</span>
-        <button className="icon-btn" title="关闭" onClick={() => closeSftp(tab.id, false)}>✕</button>
+        <span className="sftp-title">SFTP 文件</span>
+        <button className="btn btn-sm" onClick={() => closeSftp(tab.id, false)}>
+          收起 ▸
+        </button>
       </div>
       <div className="sftp-path">
         <button className="icon-btn" title="上级目录" disabled={!parent} onClick={() => parent && setPath(parent)}>↑</button>

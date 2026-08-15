@@ -95,9 +95,9 @@ export default function App() {
                   <TerminalPane tab={t} active={t.id === activeId} />
                 </div>
               ))}
-              {activeTab?.connId && sftpOpen[activeTab.id] && (
-                <SftpPanel tab={activeTab} />
-              )}
+              {activeTab?.connId &&
+                activeTab.status === "connected" &&
+                sftpOpen[activeTab.id] && <SftpPanel tab={activeTab} />}
             </>
           )}
         </div>
