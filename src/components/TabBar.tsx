@@ -32,12 +32,12 @@ export default function TabBar() {
       </div>
       <div className="tabbar-right">
         <button
-          className="btn btn-sm"
+          className={`icon-btn tabbar-file ${sftpVisible ? "on" : ""}`}
           disabled={!canSftp}
-          title={canSftp ? "显示/收起右侧文件栏" : "无可用连接"}
+          title={canSftp ? (sftpVisible ? "收起文件栏" : "打开文件栏") : "无可用连接"}
           onClick={() => canSftp && setSftpOpen(!sftpVisible)}
         >
-          {sftpVisible ? "隐藏文件 ▸" : "📁 文件"}
+          📁
         </button>
       </div>
     </div>

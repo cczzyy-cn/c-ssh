@@ -43,7 +43,6 @@ function joinPath(base: string, name: string): string {
 export default function SftpPanel({ tab }: Props) {
   const state = useTabs((s) => s.sftpStates[tab.id]);
   const setSftpState = useTabs((s) => s.setSftpState);
-  const setSftpOpen = useTabs((s) => s.setSftpOpen);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   // 文件栏宽度（可拖拽调整，持久化）
@@ -206,9 +205,6 @@ export default function SftpPanel({ tab }: Props) {
     <div className={`sftp-panel ${dragging ? "resizing" : ""}`} style={{ width }}>
       <div className="sftp-header">
         <span className="sftp-title">SFTP 文件</span>
-        <button className="btn btn-sm" onClick={() => setSftpOpen(false)}>
-          收起 ▸
-        </button>
       </div>
       <div className="sftp-path">
         <button className="icon-btn" title="上级目录" disabled={!parent} onClick={() => parent && refresh(parent)}>↑</button>

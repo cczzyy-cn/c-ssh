@@ -182,6 +182,19 @@ select {
   flex-shrink: 0;
 }
 
+.tabbar-file {
+  font-size: 14px;
+}
+
+.tabbar-file.on {
+  color: var(--color-accent);
+}
+
+.tabbar-file:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .tab {
   display: flex;
   align-items: center;
