@@ -28,6 +28,7 @@ pub fn run() {
             commands::sftp_upload,
             commands::sftp_mkdir,
             commands::sftp_delete,
+            commands::sftp_realpath,
             commands::log_frontend_error,
             commands::get_log_path,
             commands::read_log,

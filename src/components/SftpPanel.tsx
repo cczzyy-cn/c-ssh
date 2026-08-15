@@ -41,11 +41,28 @@ function joinPath(base: string, name: string): string {
 }
 
 export default function SftpPanel({ tab }: Props) {
-  const [path, setPath] = useState("/");
+  // null = 正在解析主目录；解析成功前不发起列表请求
+  const [path, setPath] = useState<string | null>(null);
   const [entries, setEntries] = useState<SftpEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const closeSftp = useTabs((s) => s.setSftpOpen);
+
+  // 打开面板：先解析用户主目录（realpath "."），失败回退到 "/"
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const home = await api.sftpRealpath(tab.id, ".");
+        if (!cancelled) setPath(normalizeSftpPath(home));
+      } catch {
+        if (!cancelled) setPath("/");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab.id]);
 
   const refresh = useCallback(
     async (p: string) => {
@@ -63,16 +80,18 @@ export default function SftpPanel({ tab }: Props) {
   );
 
   useEffect(() => {
-    refresh(path);
+    if (path) refresh(path);
   }, [path, refresh]);
 
-  const parent = path === "/" ? null : path.replace(/\/[^/]*\/?$/, "") || "/";
+  const parent = !path || path === "/" ? null : path.replace(/\/[^/]*\/?$/, "") || "/";
 
   const handleOpen = (entry: SftpEntry) => {
+    if (!path) return;
     if (entry.isDir) setPath(joinPath(path, entry.name));
   };
 
   const handleUpload = async () => {
+    if (!path) return;
     const local = await dialogOpen({
       title: "选择要上传的文件",
       multiple: true,
@@ -95,6 +114,7 @@ export default function SftpPanel({ tab }: Props) {
   };
 
   const handleDownload = async (entry: SftpEntry) => {
+    if (!path) return;
     const local = await dialogOpen({
       title: "保存到",
       defaultPath: entry.name,
@@ -112,6 +132,7 @@ export default function SftpPanel({ tab }: Props) {
   };
 
   const handleMkdir = async () => {
+    if (!path) return;
     const name = prompt("新建目录名称");
     if (!name) return;
     const remote = joinPath(path, name);
@@ -124,6 +145,7 @@ export default function SftpPanel({ tab }: Props) {
   };
 
   const handleDelete = async (entry: SftpEntry) => {
+    if (!path) return;
     if (!confirm(`确定删除「${entry.name}」？`)) return;
     try {
       const remote = joinPath(path, entry.name);
@@ -143,21 +165,22 @@ export default function SftpPanel({ tab }: Props) {
       <div className="sftp-path">
         <button className="icon-btn" title="上级目录" disabled={!parent} onClick={() => parent && setPath(parent)}>↑</button>
         <input
-          value={path}
+          value={path ?? ""}
           onChange={(e) => setPath(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" && path) {
               const n = normalizeSftpPath(path);
               setPath(n);
               refresh(n);
             }
           }}
+          placeholder={path ? undefined : "正在解析主目录…"}
         />
       </div>
       <div className="sftp-tools">
         <button className="btn btn-sm" onClick={handleUpload} disabled={busy}>上传</button>
         <button className="btn btn-sm" onClick={handleMkdir}>新建目录</button>
-        <button className="btn btn-sm" onClick={() => refresh(path)}>刷新</button>
+        <button className="btn btn-sm" onClick={() => path && refresh(path)}>刷新</button>
       </div>
       <div className="sftp-list">
         {loading && <div className="sftp-hint">加载中…</div>}

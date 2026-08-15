@@ -31,6 +31,8 @@ export const api = {
     invoke<void>("sftp_upload", { sessionId, localPath, remotePath }),
   sftpMkdir: (sessionId: string, path: string) =>
     invoke<void>("sftp_mkdir", { sessionId, path }),
+  sftpRealpath: (sessionId: string, path: string) =>
+    invoke<string>("sftp_realpath", { sessionId, path }),
   sftpDelete: (sessionId: string, path: string, isDir: boolean) =>
     invoke<void>("sftp_delete", { sessionId, path, isDir }),
   logFrontendError: (source: string, message: string, stack?: string) =>

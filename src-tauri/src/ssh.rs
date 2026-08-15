@@ -771,6 +771,18 @@ pub fn sftp_mkdir(mgr: &SessionManager, sid: &str, path: &str) -> Result<(), Str
     })
 }
 
+/// 解析真实路径（如 "." → 用户主目录），供 SFTP 面板初始化。
+pub fn sftp_realpath(mgr: &SessionManager, sid: &str, path: &str) -> Result<String, String> {
+    let path = normalize_sftp_path(path);
+    sftp_do(mgr, sid, |sftp| {
+        let p = sftp
+            .realpath(Path::new(&path))
+            .map_err(|e| format!("解析路径失败: {e}"))?;
+        // 统一为正斜杠格式（Windows 上 PathBuf 可能带反斜杠）
+        Ok(normalize_sftp_path(&p.to_string_lossy()))
+    })
+}
+
 pub fn sftp_delete(mgr: &SessionManager, sid: &str, path: &str, is_dir: bool) -> Result<(), String> {
     let path = normalize_sftp_path(path);
     sftp_do(mgr, sid, |sftp| {

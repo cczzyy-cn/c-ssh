@@ -184,6 +184,15 @@ pub fn sftp_mkdir(
 }
 
 #[tauri::command]
+pub fn sftp_realpath(
+    mgr: State<'_, SessionManager>,
+    session_id: String,
+    path: String,
+) -> Result<String, String> {
+    log_err("sftp_realpath", ssh::sftp_realpath(&mgr, &session_id, &path))
+}
+
+#[tauri::command]
 pub fn sftp_delete(
     mgr: State<'_, SessionManager>,
     session_id: String,
