@@ -706,10 +706,32 @@ select {
   width: min(520px, 92vw);
   max-height: 88vh;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 16px;
+  overscroll-behavior: contain;
+}
+
+/* modal 滚动条：细条样式，贴合圆角容器边缘 */
+.modal::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 0 10px 10px 0;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+  background: var(--color-fg-dim);
 }
 
 .modal-narrow {
