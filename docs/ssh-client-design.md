@@ -276,7 +276,17 @@ c-ssh/
 **M4 说明与取舍**
 - **跳板机（ProxyJump）未实现**：需递归 SSH 隧道，复杂度高；以 SOCKS5/HTTP 代理作为替代（配合本机 `ssh -D` 或第三方代理工具可达同样效果）。
 - **端口转发并发模型**：ssh2 Channel 无 `try_clone`，双向转发采用 `Arc<Mutex<Channel>>` 双线程——写方向在锁内瞬时完成，读方向持锁等待。SSH 隧道典型请求/响应场景工作正常；对端永久无响应且本地持续写满缓冲的极端场景会阻塞（由 SSH keep-alive 与 TCP 超时兜底）。
-- **SFTP**：SSH 会话懒创建 SFTP 句柄，浏览/上传/下载/建目录/删除均通过独立 IPC 命令；上传下载走系统文件对话框。
+- **SFTP**：SSH 会话懒创建 SFTP 句柄，浏览/上传/下载/建目录/删除均通过独立 IPC 命令；上传走系统文件选择器，下载走保存对话框（自动保留远程后缀）。
+
+**后续迭代新增（未在原始里程碑中）**
+| 功能 | 说明 |
+|---|---|
+| 三栏布局 | 左连接列表 / 中标签+终端 / 右文件栏，两侧宽度可拖拽（持久化） |
+| 软件内本地命令行 | `portable-pty`（Windows ConPTY）会话，`>_` 按钮在软件内开 cmd/shell 标签，复用终端通道 |
+| 自绘标题栏 | `decorations: false` + 前端 TitleBar（拖拽/双击最大化/窗口控制），颜色跟随主题 |
+| 界面字号设置 | CSS 变量体系（`--ui-fs-base`）全局缩放 UI 字体与 emoji 图标，终端字号独立 |
+| 会话可靠性 | 非阻塞读写 + 锁互斥（keepalive/读写/SFTP 均串行访问 libssh2）；`write_input` 不误调 `flush()`（libssh2_channel_flush_ex 会丢接收缓冲）；TCP 连接超时受 `connect_timeout` 控制 |
+| 错误日志增强 | 会话读线程/端口转发错误入日志、日志内容软件内查看（LogViewer） |
 
 ---
 
