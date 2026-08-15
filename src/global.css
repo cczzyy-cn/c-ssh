@@ -467,6 +467,15 @@ select {
   overflow: hidden;
 }
 
+/* xterm 5 自定义滚动条：统一宽度与圆角（颜色由 theme 注入，见 TerminalPane） */
+.xterm .xterm-scrollable-element > .scrollbar {
+  width: 8px !important;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar > .slider {
+  border-radius: 4px !important;
+}
+
 /* ---- 全局统一滚动条样式（细条、圆角、跟随主题） ---- */
 * {
   scrollbar-width: thin;

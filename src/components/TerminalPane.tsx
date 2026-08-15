@@ -21,7 +21,14 @@ export default function TerminalPane({ tab, active }: { tab: Tab; active: boolea
   const [query, setQuery] = useState("");
 
   const themeName = tab.theme || resolved.name;
-  const terminalTheme = getTheme(themeName).terminal;
+  const theme = getTheme(themeName);
+  // 注入 xterm 自定义滚动条颜色（跟随主题），统一样式
+  const terminalTheme = {
+    ...theme.terminal,
+    scrollbarSliderBackground: theme.ui["--color-border"] ?? "#3e4451",
+    scrollbarSliderHoverBackground: theme.ui["--color-fg-dim"] ?? "#7f848e",
+    scrollbarSliderActiveBackground: theme.ui["--color-fg-dim"] ?? "#7f848e",
+  };
 
   useEffect(() => {
     const el = containerRef.current;
