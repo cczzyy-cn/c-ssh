@@ -182,11 +182,11 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-footer">
+        <button className="btn btn-sm" onClick={handleImport}>⇩ 导入</button>
+        <button className="btn btn-sm" onClick={handleExport}>⇧ 导出</button>
         <button className="btn btn-sm" onClick={() => setShowSettings(true)}>
           ⚙ 设置
         </button>
-        <button className="btn btn-sm" onClick={handleImport}>⇩ 导入</button>
-        <button className="btn btn-sm" onClick={handleExport}>⇧ 导出</button>
       </div>
 
       {showForm && (

@@ -45,6 +45,8 @@ interface TabsState {
   closeTab: (id: string) => Promise<void>;
   setActive: (id: string) => void;
   setStatus: (id: string, status: TabStatus, error?: string) => void;
+  /** 拖拽调整标签顺序 */
+  moveTab: (fromId: string, toId: string) => void;
   registerTerminal: (id: string, term: Terminal) => void;
   unregisterTerminal: (id: string) => void;
   bufferData: (id: string, bytes: Uint8Array) => void;
@@ -90,6 +92,17 @@ export const useTabs = create<TabsState>((set, get) => ({
     set((s) => ({
       tabs: s.tabs.map((t) => (t.id === id ? { ...t, status, error } : t)),
     })),
+  moveTab: (fromId, toId) =>
+    set((s) => {
+      if (fromId === toId) return s;
+      const from = s.tabs.findIndex((t) => t.id === fromId);
+      const to = s.tabs.findIndex((t) => t.id === toId);
+      if (from < 0 || to < 0) return s;
+      const tabs = [...s.tabs];
+      const [moved] = tabs.splice(from, 1);
+      tabs.splice(to, 0, moved);
+      return { tabs };
+    }),
   registerTerminal: (id, term) =>
     set((s) => {
       // 注册时回放缓冲数据（连接建立后 shell banner 早于终端挂载到达的情况）
