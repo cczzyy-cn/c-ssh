@@ -11,6 +11,11 @@
   --color-hover: #2c2e33;
   --color-selection: #3b4a5a;
   --color-danger: #e5534b;
+  --color-success: #3fb950;
+  --color-warning: #d29922;
+  --color-info: #58a6ff;
+  --color-link: #4f9cf9;
+  --color-focus-ring: rgba(79, 156, 249, 0.4);
 
   /* 全局界面字号基准（设置面板可调，图标 emoji 随字号缩放） */
   --ui-fs-base: 13px;
@@ -105,7 +110,7 @@ select {
 }
 
 .titlebar-close:hover {
-  background: #e81123;
+  background: var(--color-danger);
   color: #fff;
 }
 
@@ -246,11 +251,11 @@ select {
 }
 
 .status-dot.connected {
-  background: #3fb950;
+  background: var(--color-success);
 }
 
 .status-dot.connecting {
-  background: #d29922;
+  background: var(--color-warning);
 }
 
 .status-dot.closed {

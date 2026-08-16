@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { getTheme, type ThemeDef } from "../themes";
+import { getTheme, type ResolvedTheme } from "../themes";
 
 export type ThemeMode = "dark" | "light" | "system";
 
@@ -8,7 +8,7 @@ interface ThemeState {
   mode: ThemeMode;
   themeName: string;
   /** 实际生效的主题（system 模式按系统解析） */
-  resolved: ThemeDef;
+  resolved: ResolvedTheme;
   setMode: (mode: ThemeMode) => void;
   setThemeName: (name: string) => void;
 }
@@ -30,7 +30,7 @@ function loadPersisted(): { mode: ThemeMode; themeName: string } {
 
 const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-function resolve(mode: ThemeMode, themeName: string): ThemeDef {
+function resolve(mode: ThemeMode, themeName: string): ResolvedTheme {
   if (mode === "system") {
     return getTheme(systemDark ? "默认暗色" : "默认亮色");
   }
@@ -40,7 +40,7 @@ function resolve(mode: ThemeMode, themeName: string): ThemeDef {
   return t.type === "light" ? t : getTheme("默认亮色");
 }
 
-function applyTheme(theme: ThemeDef) {
+function applyTheme(theme: ResolvedTheme) {
   const root = document.documentElement;
   for (const [k, v] of Object.entries(theme.ui)) {
     root.style.setProperty(k, v);
@@ -48,13 +48,13 @@ function applyTheme(theme: ThemeDef) {
 }
 
 /** 窗口标题栏明暗跟随主题（深色主题 → 深色标题栏，浅色 → 浅色）。 */
-function applyWindowTheme(theme: ThemeDef) {
+function applyWindowTheme(theme: ResolvedTheme) {
   getCurrentWindow()
     .setTheme(theme.type === "dark" ? "dark" : "light")
     .catch(() => undefined);
 }
 
-function applyBoth(theme: ThemeDef) {
+function applyBoth(theme: ResolvedTheme) {
   applyTheme(theme);
   applyWindowTheme(theme);
 }

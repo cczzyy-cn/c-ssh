@@ -1,51 +1,117 @@
+/** 基础色板（主题的种子色，用户可编辑的核心） */
+export interface Palette {
+  bg: string;
+  bgAlt: string;
+  bgInput: string;
+  fg: string;
+  fgDim: string;
+  accent: string;
+  accentFg: string;
+  border: string;
+  hover: string;
+  selection: string;
+  danger: string;
+  success: string;
+  warning: string;
+  info: string;
+  link?: string;
+}
+
 export interface ThemeDef {
   name: string;
   type: "dark" | "light";
-  /** UI 层 CSS 变量 */
-  ui: Record<string, string>;
-  /** xterm.js theme 配置 */
+  palette: Palette;
+  /** UI 语义变量覆盖（一般无需，由 palette 派生） */
+  ui?: Record<string, string>;
+  /** xterm 色板（background/foreground/cursor/ANSI 16） */
   terminal: Record<string, string>;
 }
 
-const DARK_UI = {
-  "--color-bg": "#1e1f22",
-  "--color-bg-alt": "#26282c",
-  "--color-bg-input": "#2c2e33",
-  "--color-fg": "#d4d4d8",
-  "--color-fg-dim": "#8b8d94",
-  "--color-accent": "#4f9cf9",
-  "--color-accent-fg": "#ffffff",
-  "--color-border": "#383a3f",
-  "--color-hover": "#2c2e33",
-  "--color-selection": "#3b4a5a",
-  "--color-danger": "#e5534b",
+/** palette → UI 语义 CSS 变量 */
+export function deriveUi(p: Palette, overrides?: Record<string, string>): Record<string, string> {
+  const ui: Record<string, string> = {
+    "--color-bg": p.bg,
+    "--color-bg-alt": p.bgAlt,
+    "--color-bg-input": p.bgInput,
+    "--color-fg": p.fg,
+    "--color-fg-dim": p.fgDim,
+    "--color-accent": p.accent,
+    "--color-accent-fg": p.accentFg,
+    "--color-border": p.border,
+    "--color-hover": p.hover,
+    "--color-selection": p.selection,
+    "--color-danger": p.danger,
+    "--color-success": p.success,
+    "--color-warning": p.warning,
+    "--color-info": p.info,
+    "--color-link": p.link ?? p.accent,
+  };
+  return { ...ui, ...overrides };
+}
+
+/** palette → xterm 基础色（背景/前景/光标）；ANSI 16 由主题 terminal 提供或回退默认 */
+export function deriveTerminal(p: Palette, t?: Record<string, string>): Record<string, string> {
+  const base: Record<string, string> = {
+    background: p.bg,
+    foreground: p.fg,
+    cursor: p.fg,
+    cursorAccent: p.bg,
+    selectionBackground: p.selection,
+  };
+  return { ...base, ...t };
+}
+
+const DARK_PALETTE: Palette = {
+  bg: "#1e1f22",
+  bgAlt: "#26282c",
+  bgInput: "#2c2e33",
+  fg: "#d4d4d8",
+  fgDim: "#8b8d94",
+  accent: "#4f9cf9",
+  accentFg: "#ffffff",
+  border: "#383a3f",
+  hover: "#2c2e33",
+  selection: "#3b4a5a",
+  danger: "#e5534b",
+  success: "#3fb950",
+  warning: "#d29922",
+  info: "#58a6ff",
 };
 
-const LIGHT_UI = {
-  "--color-bg": "#f5f5f6",
-  "--color-bg-alt": "#ebebee",
-  "--color-bg-input": "#ffffff",
-  "--color-fg": "#24292f",
-  "--color-fg-dim": "#6e7781",
-  "--color-accent": "#0969da",
-  "--color-accent-fg": "#ffffff",
-  "--color-border": "#d0d7de",
-  "--color-hover": "#e4e7eb",
-  "--color-selection": "#c8e1ff",
-  "--color-danger": "#cf222e",
+const LIGHT_PALETTE: Palette = {
+  bg: "#f5f5f6",
+  bgAlt: "#ebebee",
+  bgInput: "#ffffff",
+  fg: "#24292f",
+  fgDim: "#6e7781",
+  accent: "#0969da",
+  accentFg: "#ffffff",
+  border: "#d0d7de",
+  hover: "#e4e7eb",
+  selection: "#c8e1ff",
+  danger: "#cf222e",
+  success: "#1a7f37",
+  warning: "#9a6700",
+  info: "#0969da",
 };
 
 export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "One Dark",
     type: "dark",
-    ui: { ...DARK_UI, "--color-bg": "#282c34", "--color-bg-alt": "#21252b", "--color-bg-input": "#2c313a", "--color-fg": "#abb2bf", "--color-fg-dim": "#7f848e", "--color-accent": "#61afef", "--color-border": "#3e4451", "--color-hover": "#2c313a", "--color-selection": "#3e4451" },
+    palette: {
+      ...DARK_PALETTE,
+      bg: "#282c34",
+      bgAlt: "#21252b",
+      bgInput: "#2c313a",
+      fg: "#abb2bf",
+      fgDim: "#7f848e",
+      accent: "#61afef",
+      border: "#3e4451",
+      hover: "#2c313a",
+      selection: "#3e4451",
+    },
     terminal: {
-      background: "#282c34",
-      foreground: "#abb2bf",
-      cursor: "#528bff",
-      cursorAccent: "#282c34",
-      selectionBackground: "#3e4451",
       black: "#282c34", red: "#e06c75", green: "#98c379", yellow: "#e5c07b",
       blue: "#61afef", magenta: "#c678dd", cyan: "#56b6c2", white: "#abb2bf",
       brightBlack: "#5c6370", brightRed: "#e06c75", brightGreen: "#98c379", brightYellow: "#e5c07b",
@@ -55,9 +121,13 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "Dracula",
     type: "dark",
-    ui: { ...DARK_UI, "--color-bg": "#282a36", "--color-bg-alt": "#21222c", "--color-bg-input": "#343746", "--color-fg": "#f8f8f2", "--color-fg-dim": "#9096ad", "--color-accent": "#bd93f9", "--color-border": "#44475a", "--color-hover": "#343746", "--color-selection": "#44475a" },
+    palette: {
+      ...DARK_PALETTE,
+      bg: "#282a36", bgAlt: "#21222c", bgInput: "#343746",
+      fg: "#f8f8f2", fgDim: "#9096ad", accent: "#bd93f9",
+      border: "#44475a", hover: "#343746", selection: "#44475a",
+    },
     terminal: {
-      background: "#282a36", foreground: "#f8f8f2", cursor: "#f8f8f2", cursorAccent: "#282a36", selectionBackground: "#44475a",
       black: "#21222c", red: "#ff5555", green: "#50fa7b", yellow: "#f1fa8c",
       blue: "#bd93f9", magenta: "#ff79c6", cyan: "#8be9fd", white: "#f8f8f2",
       brightBlack: "#6272a4", brightRed: "#ff6e6e", brightGreen: "#69ff94", brightYellow: "#ffffa5",
@@ -67,9 +137,13 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "Nord",
     type: "dark",
-    ui: { ...DARK_UI, "--color-bg": "#2e3440", "--color-bg-alt": "#272c36", "--color-bg-input": "#3b4252", "--color-fg": "#d8dee9", "--color-fg-dim": "#7b88a1", "--color-accent": "#88c0d0", "--color-border": "#434c5e", "--color-hover": "#3b4252", "--color-selection": "#434c5e" },
+    palette: {
+      ...DARK_PALETTE,
+      bg: "#2e3440", bgAlt: "#272c36", bgInput: "#3b4252",
+      fg: "#d8dee9", fgDim: "#7b88a1", accent: "#88c0d0",
+      border: "#434c5e", hover: "#3b4252", selection: "#434c5e",
+    },
     terminal: {
-      background: "#2e3440", foreground: "#d8dee9", cursor: "#d8dee9", cursorAccent: "#2e3440", selectionBackground: "#434c5e",
       black: "#3b4252", red: "#bf616a", green: "#a3be8c", yellow: "#ebcb8b",
       blue: "#81a1c1", magenta: "#b48ead", cyan: "#88c0d0", white: "#e5e9f0",
       brightBlack: "#4c566a", brightRed: "#bf616a", brightGreen: "#a3be8c", brightYellow: "#ebcb8b",
@@ -79,9 +153,13 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "Solarized Dark",
     type: "dark",
-    ui: { ...DARK_UI, "--color-bg": "#002b36", "--color-bg-alt": "#073642", "--color-bg-input": "#073642", "--color-fg": "#839496", "--color-fg-dim": "#586e75", "--color-accent": "#268bd2", "--color-border": "#073642", "--color-hover": "#073642", "--color-selection": "#073642" },
+    palette: {
+      ...DARK_PALETTE,
+      bg: "#002b36", bgAlt: "#073642", bgInput: "#073642",
+      fg: "#839496", fgDim: "#586e75", accent: "#268bd2",
+      border: "#073642", hover: "#073642", selection: "#073642",
+    },
     terminal: {
-      background: "#002b36", foreground: "#839496", cursor: "#839496", cursorAccent: "#002b36", selectionBackground: "#073642",
       black: "#073642", red: "#dc322f", green: "#859900", yellow: "#b58900",
       blue: "#268bd2", magenta: "#d33682", cyan: "#2aa198", white: "#eee8d5",
       brightBlack: "#586e75", brightRed: "#cb4b16", brightGreen: "#859900", brightYellow: "#b58900",
@@ -91,9 +169,13 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "Solarized Light",
     type: "light",
-    ui: { ...LIGHT_UI, "--color-bg": "#fdf6e3", "--color-bg-alt": "#eee8d5", "--color-bg-input": "#eee8d5", "--color-fg": "#586e75", "--color-fg-dim": "#839496", "--color-accent": "#268bd2", "--color-border": "#eee8d5", "--color-hover": "#eee8d5", "--color-selection": "#eee8d5" },
+    palette: {
+      ...LIGHT_PALETTE,
+      bg: "#fdf6e3", bgAlt: "#eee8d5", bgInput: "#eee8d5",
+      fg: "#586e75", fgDim: "#839496", accent: "#268bd2",
+      border: "#eee8d5", hover: "#eee8d5", selection: "#eee8d5",
+    },
     terminal: {
-      background: "#fdf6e3", foreground: "#586e75", cursor: "#586e75", cursorAccent: "#fdf6e3", selectionBackground: "#eee8d5",
       black: "#073642", red: "#dc322f", green: "#859900", yellow: "#b58900",
       blue: "#268bd2", magenta: "#d33682", cyan: "#2aa198", white: "#eee8d5",
       brightBlack: "#002b36", brightRed: "#cb4b16", brightGreen: "#859900", brightYellow: "#b58900",
@@ -103,9 +185,13 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "Gruvbox Dark",
     type: "dark",
-    ui: { ...DARK_UI, "--color-bg": "#282828", "--color-bg-alt": "#1d2021", "--color-bg-input": "#3c3836", "--color-fg": "#ebdbb2", "--color-fg-dim": "#928374", "--color-accent": "#fabd2f", "--color-border": "#3c3836", "--color-hover": "#3c3836", "--color-selection": "#3c3836" },
+    palette: {
+      ...DARK_PALETTE,
+      bg: "#282828", bgAlt: "#1d2021", bgInput: "#3c3836",
+      fg: "#ebdbb2", fgDim: "#928374", accent: "#fabd2f",
+      border: "#3c3836", hover: "#3c3836", selection: "#3c3836",
+    },
     terminal: {
-      background: "#282828", foreground: "#ebdbb2", cursor: "#ebdbb2", cursorAccent: "#282828", selectionBackground: "#3c3836",
       black: "#282828", red: "#cc241d", green: "#98971a", yellow: "#d79921",
       blue: "#458588", magenta: "#b16286", cyan: "#689d6a", white: "#a89984",
       brightBlack: "#928374", brightRed: "#fb4934", brightGreen: "#b8bb26", brightYellow: "#fabd2f",
@@ -115,9 +201,8 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "默认暗色",
     type: "dark",
-    ui: DARK_UI,
+    palette: DARK_PALETTE,
     terminal: {
-      background: "#1e1f22", foreground: "#d4d4d8", cursor: "#d4d4d8", cursorAccent: "#1e1f22", selectionBackground: "#3b4a5a",
       black: "#2c2e33", red: "#e5534b", green: "#3fb950", yellow: "#d29922",
       blue: "#58a6ff", magenta: "#bc8cff", cyan: "#39c5cf", white: "#d4d4d8",
       brightBlack: "#6e7681", brightRed: "#ff7b72", brightGreen: "#7ee787", brightYellow: "#e3b341",
@@ -127,9 +212,8 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   {
     name: "默认亮色",
     type: "light",
-    ui: LIGHT_UI,
+    palette: LIGHT_PALETTE,
     terminal: {
-      background: "#f5f5f6", foreground: "#24292f", cursor: "#24292f", cursorAccent: "#f5f5f6", selectionBackground: "#c8e1ff",
       black: "#24292f", red: "#cf222e", green: "#116329", yellow: "#4d2d00",
       blue: "#0969da", magenta: "#8250df", cyan: "#1b7c83", white: "#6e7781",
       brightBlack: "#57606a", brightRed: "#a40e26", brightGreen: "#1a7f37", brightYellow: "#633c01",
@@ -138,6 +222,17 @@ export const BUILTIN_THEMES: ThemeDef[] = [
   },
 ];
 
-export function getTheme(name: string): ThemeDef {
-  return BUILTIN_THEMES.find((t) => t.name === name) ?? BUILTIN_THEMES[0];
+/** 组装后的完整主题（ui 由 palette 派生） */
+export type ResolvedTheme = ReturnType<typeof getTheme>;
+
+/** 组装完整主题：ui 由 palette 派生（含覆盖），terminal 补全基础色 */
+export function getTheme(name: string): { name: string; type: "dark" | "light"; palette: Palette; ui: Record<string, string>; terminal: Record<string, string> } {
+  const t = BUILTIN_THEMES.find((x) => x.name === name) ?? BUILTIN_THEMES[0];
+  return {
+    name: t.name,
+    type: t.type,
+    palette: t.palette,
+    ui: deriveUi(t.palette, t.ui),
+    terminal: deriveTerminal(t.palette, t.terminal),
+  };
 }
