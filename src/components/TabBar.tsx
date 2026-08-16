@@ -4,23 +4,19 @@ import { openLocalShell, useTabs } from "../stores/tabs";
 export default function TabBar() {
   const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, swapTabs } = useTabs();
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
-  const dragRef = useRef<{
-    id: string;
-    startX: number;
-    dragging: boolean;
-    lastHit: string | null; // 上次命中的目标标签，避免边界抖动来回互换
-  } | null>(null);
+  const dragRef = useRef<{ id: string; startX: number; dragging: boolean } | null>(null);
   const activeTab = tabs.find((t) => t.id === activeId);
   // 仅真实连接会话可开关文件面板（无连接/连接中/演示会话禁用）
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
   const sftpVisible = canSftp && sftpOpen;
 
-  /** 鼠标拖拽排序标签：实时互换（序号跟随），带滞后防抖动 */
+  /** 鼠标拖拽：拖动中标签内容不动，仅高亮目标标签，松手时互换位置 */
   const onTabMouseDown = (id: string, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖拽
     e.preventDefault();
-    dragRef.current = { id, startX: e.clientX, dragging: false, lastHit: null };
+    dragRef.current = { id, startX: e.clientX, dragging: false };
 
     const onMove = (ev: MouseEvent) => {
       const st = dragRef.current;
@@ -31,7 +27,7 @@ export default function TabBar() {
         setDraggingId(st.id);
         document.body.style.cursor = "grabbing";
       }
-      // 找鼠标所在的标签（rect 内，含关闭按钮/内边距），排除拖拽标签自身
+      // 只更新目标高亮，不改变标签顺序
       let hit: string | null = null;
       for (const tab of useTabs.getState().tabs) {
         if (tab.id === st.id) continue;
@@ -43,16 +39,17 @@ export default function TabBar() {
           break;
         }
       }
-      // 滞后：只有命中目标变化才互换，避免在边界/间隙来回抖动导致状态丢失
-      if (hit && hit !== st.lastHit) {
-        swapTabs(st.id, hit);
-        st.id = hit; // 拖拽标签跟随到新位置
-      }
-      st.lastHit = hit;
+      setDropTargetId(hit);
     };
     const onUp = () => {
+      const st = dragRef.current;
+      const target = dropTargetRef.current;
+      if (st?.dragging && target) {
+        swapTabs(st.id, target); // 释放鼠标后互换位置
+      }
       dragRef.current = null;
       setDraggingId(null);
+      setDropTargetId(null);
       document.body.style.cursor = "";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -60,6 +57,9 @@ export default function TabBar() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
+
+  const dropTargetRef = useRef<string | null>(null);
+  dropTargetRef.current = dropTargetId;
 
   return (
     <div className="tabbar">
@@ -72,7 +72,7 @@ export default function TabBar() {
             }}
             className={`tab ${t.id === activeId ? "active" : ""} ${t.status === "error" ? "error" : ""} ${
               t.id === draggingId ? "dragging" : ""
-            }`}
+            } ${t.id === dropTargetId ? "drop-target" : ""}`}
             onClick={() => setActive(t.id)}
             onMouseDown={(e) => onTabMouseDown(t.id, e)}
           >

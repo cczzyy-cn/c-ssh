@@ -196,6 +196,18 @@ select {
   opacity: 0.5;
 }
 
+/* 拖拽目标标签：背景变强调色 */
+.tab.drop-target {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.tab.drop-target .tab-title,
+.tab.drop-target .tab-index,
+.tab.drop-target .status-dot {
+  color: var(--color-accent-fg);
+}
+
 .tab {
   cursor: grab;
 }
