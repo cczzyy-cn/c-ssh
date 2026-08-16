@@ -32,8 +32,9 @@ export default function App() {
   // Ctrl+Tab：切换连接标签（有上一个切上一个，否则切下一个，单标签无操作）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || e.key !== "Tab") return;
+      if (!e.ctrlKey || (e.key !== "Tab" && e.code !== "Tab")) return;
       e.preventDefault();
+      e.stopPropagation();
       const { tabs, activeId, setActive } = useTabs.getState();
       if (tabs.length < 2) return; // 没有下一个，无操作
       const idx = tabs.findIndex((t) => t.id === activeId);
@@ -43,8 +44,9 @@ export default function App() {
         setActive(tabs[1].id); // 没有上一个：切换下一个
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // capture 阶段最先捕获，避免被 WebView2/焦点/终端控件拦截
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, []);
 
   // 全局终端事件分发（注册一次）
