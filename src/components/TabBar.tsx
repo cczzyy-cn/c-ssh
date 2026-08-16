@@ -6,7 +6,12 @@ export default function TabBar() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
-  const dragRef = useRef<{ id: string; startX: number; dragging: boolean } | null>(null);
+  const dragRef = useRef<{
+    id: string;
+    startX: number;
+    dragging: boolean;
+    lastHit: string | null; // 最后一次命中的目标标签（同步存储，避免渲染延迟）
+  } | null>(null);
   const activeTab = tabs.find((t) => t.id === activeId);
   // 仅真实连接会话可开关文件面板（无连接/连接中/演示会话禁用）
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
@@ -16,7 +21,7 @@ export default function TabBar() {
   const onTabMouseDown = (id: string, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖拽
     e.preventDefault();
-    dragRef.current = { id, startX: e.clientX, dragging: false };
+    dragRef.current = { id, startX: e.clientX, dragging: false, lastHit: null };
 
     const onMove = (ev: MouseEvent) => {
       const st = dragRef.current;
@@ -39,13 +44,14 @@ export default function TabBar() {
           break;
         }
       }
+      st.lastHit = hit; // 同步记录目标
       setDropTargetId(hit);
     };
     const onUp = () => {
       const st = dragRef.current;
-      const target = dropTargetRef.current;
-      if (st?.dragging && target) {
-        swapTabs(st.id, target); // 释放鼠标后互换位置
+      // 直接读 dragRef 同步目标，避免 setState 渲染延迟导致互换未执行
+      if (st?.dragging && st.lastHit) {
+        swapTabs(st.id, st.lastHit); // 释放鼠标后互换位置
       }
       dragRef.current = null;
       setDraggingId(null);
@@ -57,9 +63,6 @@ export default function TabBar() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
-
-  const dropTargetRef = useRef<string | null>(null);
-  dropTargetRef.current = dropTargetId;
 
   return (
     <div className="tabbar">
