@@ -211,7 +211,7 @@ pub fn open(
 
     let mut session = Session::new().map_err(|e| format!("创建 SSH 会话失败: {e}"))?;
     session.set_tcp_stream(tcp);
-    session.handshake().map_err(|e| format!("SSH 握手失败: {e}"))?;
+    handshake_with_fallback(conn, &mut session)?;
     // 应用层 keep-alive（libssh2），间隔来自连接配置
     session.set_keepalive(false, conn.options.keep_alive_interval.max(10) as u32);
     authenticate(&mut session, conn, store)?;
@@ -325,12 +325,54 @@ pub fn test(conn: &ConnectionConfig, store: &Store) -> Result<(), String> {
     let tcp = connect_tcp(conn)?;
     let mut session = Session::new().map_err(|e| format!("创建 SSH 会话失败: {e}"))?;
     session.set_tcp_stream(tcp);
-    session.handshake().map_err(|e| format!("SSH 握手失败: {e}"))?;
+    handshake_with_fallback(conn, &mut session)?;
     authenticate(&mut session, conn, store)?;
     if !session.authenticated() {
         return Err("认证未完成".into());
     }
     Ok(())
+}
+
+/// SSH 握手：首次用默认（安全）算法；若 KEX 失败（老服务器只支持旧算法），
+/// 降级到更宽的算法列表重试一次（兼容 ssh-rsa / group1-sha1 等旧实现）。
+fn handshake_with_fallback(conn: &ConnectionConfig, session: &mut Session) -> Result<(), String> {
+    match session.handshake() {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            let is_kex = e.code() == ssh2::ErrorCode::Session(-8);
+            if !is_kex {
+                return Err(format!("SSH 握手失败: {e}"));
+            }
+            logger::warn(&format!(
+                "SSH 握手 KEX 失败（{}），尝试降级算法重试",
+                conn.host
+            ));
+            // 重新建立连接（同一 session 无法二次握手）
+            let tcp = connect_tcp(conn)?;
+            let mut s2 = Session::new().map_err(|e| format!("创建 SSH 会话失败: {e}"))?;
+            s2.set_tcp_stream(tcp);
+            let _ = s2.method_pref(
+                ssh2::MethodType::Kex,
+                "diffie-hellman-group1-sha1,diffie-hellman-group14-sha1,diffie-hellman-group14-sha256,diffie-hellman-group-exchange-sha1,diffie-hellman-group-exchange-sha256",
+            );
+            let _ = s2.method_pref(
+                ssh2::MethodType::HostKey,
+                "ssh-rsa,rsa-sha2-256,rsa-sha2-512",
+            );
+            let _ = s2.method_pref(
+                ssh2::MethodType::CryptCs,
+                "aes128-ctr,aes256-ctr,aes128-cbc,3des-cbc",
+            );
+            let _ = s2.method_pref(
+                ssh2::MethodType::CryptSc,
+                "aes128-ctr,aes256-ctr,aes128-cbc,3des-cbc",
+            );
+            s2.handshake().map_err(|e| format!("SSH 握手失败: {e}"))?;
+            // 用降级后的 session 替换原 session
+            *session = s2;
+            Ok(())
+        }
+    }
 }
 
 /// 建立 TCP 连接；若配置了代理则先走代理握手（SOCKS5 / HTTP CONNECT）。
