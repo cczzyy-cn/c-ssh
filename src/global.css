@@ -948,6 +948,11 @@ select {
   grid-column: span 2;
 }
 
+/* 连接编辑表单：内容多，加宽弹窗避免两列挤压 */
+.conn-modal {
+  width: min(720px, 94vw);
+}
+
 .font-size-row {
   display: flex;
   align-items: center;

@@ -76,7 +76,7 @@ export default function ConnectionForm({ conn, onClose }: Props) {
 
   return (
     <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-fixed-header">
+      <div className="modal modal-fixed-header conn-modal">
         <div className="modal-header">
           <h3>{isEdit ? "编辑连接" : "新建连接"}</h3>
           <button className="icon-btn" onClick={onClose}>✕</button>
@@ -209,7 +209,7 @@ export default function ConnectionForm({ conn, onClose }: Props) {
             断线自动重连
           </label>
 
-          <label>
+          <label className="span-2">
             代理
             <select
               value={form.options.proxy?.type ?? "none"}
@@ -226,7 +226,7 @@ export default function ConnectionForm({ conn, onClose }: Props) {
           </label>
           {form.options.proxy && (
             <>
-              <label>
+              <label className="span-2">
                 代理主机:端口
                 <div className="proxy-row">
                   <input
