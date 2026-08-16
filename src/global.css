@@ -193,25 +193,7 @@ select {
 
 /* 拖拽中的源标签半透明 */
 .tab.dragging {
-  opacity: 0.35;
-}
-
-/* 拖拽幽灵标签：跟随鼠标，显示目标序号 */
-.tab-ghost {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 20;
-  pointer-events: none;
-  opacity: 0.9;
-  background: var(--color-bg);
-  border: 1px solid var(--color-accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
-.tab-ghost .tab-index {
-  color: var(--color-accent);
-  font-weight: 700;
+  opacity: 0.5;
 }
 
 .tab {
@@ -222,12 +204,12 @@ select {
   cursor: grabbing;
 }
 
-/* 标签序号 */
+/* 标签序号（固定宽度，避免 1 位→2 位时布局跳动） */
 .tab-index {
   font-size: var(--ui-fs-xs);
   color: var(--color-fg-dim);
   flex-shrink: 0;
-  min-width: 14px;
+  min-width: 22px;
   text-align: center;
 }
 
