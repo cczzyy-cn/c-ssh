@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { openLocalShell, useTabs } from "../stores/tabs";
 
 export default function TabBar() {
-  const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, moveTabToIndex } = useTabs();
+  const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, swapTabs } = useTabs();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
@@ -44,7 +44,9 @@ export default function TabBar() {
     const onUp = () => {
       const st = dragRef.current;
       if (st?.dragging && dropIndexRef.current !== null) {
-        moveTabToIndex(st.id, dropIndexRef.current);
+        // 互换策略：拖动标签与目标标签直接交换位置
+        const target = useTabs.getState().tabs[dropIndexRef.current];
+        if (target) swapTabs(st.id, target.id);
       }
       dragRef.current = null;
       setDraggingId(null);
