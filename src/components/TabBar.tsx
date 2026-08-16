@@ -1,54 +1,66 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { openLocalShell, useTabs } from "../stores/tabs";
 
 export default function TabBar() {
   const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, moveTab } = useTabs();
-  const dragIdRef = useRef<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
+  const dragRef = useRef<{ id: string; startX: number; dragging: boolean } | null>(null);
   const activeTab = tabs.find((t) => t.id === activeId);
   // 仅真实连接会话可开关文件面板（无连接/连接中/演示会话禁用）
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
   const sftpVisible = canSftp && sftpOpen;
 
+  /** 鼠标拖拽排序标签（WebView2 对 HTML5 DnD 支持不佳，改用 mouse 事件） */
+  const onTabMouseDown = (id: string, e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖拽
+    e.preventDefault();
+    dragRef.current = { id, startX: e.clientX, dragging: false };
+
+    const onMove = (ev: MouseEvent) => {
+      const st = dragRef.current;
+      if (!st) return;
+      if (!st.dragging) {
+        if (Math.abs(ev.clientX - st.startX) < 5) return; // 位移阈值
+        st.dragging = true;
+        setDraggingId(st.id);
+      }
+      // 根据鼠标 x 找到目标标签，实时换位
+      for (const tab of useTabs.getState().tabs) {
+        const el = tabElsRef.current[tab.id];
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (ev.clientX >= r.left && ev.clientX <= r.right && tab.id !== st.id) {
+          moveTab(st.id, tab.id);
+          st.id = tab.id; // 拖拽的标签跟随到新位置
+          break;
+        }
+      }
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      setDraggingId(null);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   return (
     <div className="tabbar">
-      <div
-        className="tabbar-tabs"
-        onDragOver={(e) => {
-          // 允许在标签区空白处放置（拖到末尾），避免出现禁止图标
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          const fromId = e.dataTransfer.getData("text/plain") || dragIdRef.current;
-          dragIdRef.current = null;
-          if (fromId && tabs.length) moveTab(fromId, tabs[tabs.length - 1].id);
-        }}
-      >
+      <div className="tabbar-tabs">
         {tabs.map((t) => (
           <div
             key={t.id}
-            className={`tab ${t.id === activeId ? "active" : ""} ${t.status === "error" ? "error" : ""}`}
+            ref={(el) => {
+              if (el) tabElsRef.current[t.id] = el;
+            }}
+            className={`tab ${t.id === activeId ? "active" : ""} ${t.status === "error" ? "error" : ""} ${
+              t.id === draggingId ? "dragging" : ""
+            }`}
             onClick={() => setActive(t.id)}
-            draggable
-            onDragStart={(e) => {
-              dragIdRef.current = t.id;
-              e.dataTransfer.effectAllowed = "move";
-              e.dataTransfer.setData("text/plain", t.id);
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "move";
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              const fromId = e.dataTransfer.getData("text/plain") || dragIdRef.current;
-              dragIdRef.current = null;
-              if (fromId && fromId !== t.id) moveTab(fromId, t.id);
-            }}
-            onDragEnd={() => {
-              dragIdRef.current = null;
-            }}
+            onMouseDown={(e) => onTabMouseDown(t.id, e)}
           >
             <span className={`status-dot ${t.status}`} />
             <span className="tab-title">{t.title}</span>

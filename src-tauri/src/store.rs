@@ -196,16 +196,30 @@ impl Store {
 
     /// 保存用户主题（文件名取自 JSON 的 name 字段）。
     pub fn save_user_theme(&self, content: &str) -> Result<String, String> {
+        // 兼容带 BOM 的文件（部分编辑器导出会带）
+        let cleaned = content.strip_prefix('\u{feff}').unwrap_or(content);
         let v: serde_json::Value =
-            serde_json::from_str(content).map_err(|e| format!("主题 JSON 解析失败: {e}"))?;
+            serde_json::from_str(cleaned).map_err(|e| format!("主题 JSON 解析失败: {e}"))?;
         let name = v
             .get("name")
             .and_then(|n| n.as_str())
-            .ok_or("主题缺少 name 字段")?
-            .to_string();
-        let path = self.themes_dir.join(format!("{name}.json"));
-        fs::write(&path, content).map_err(|e| format!("写入主题失败: {e}"))?;
-        Ok(name)
+            .ok_or("主题缺少 name 字段")?;
+        // 清洗非法文件名字符（Windows 不允许 < > : " / \ | ? *）
+        let safe: String = name
+            .chars()
+            .map(|c| match c {
+                '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' | '\0' => '_',
+                c if c.is_control() => '_',
+                c => c,
+            })
+            .collect();
+        let safe = safe.trim();
+        if safe.is_empty() {
+            return Err("主题名称不合法".into());
+        }
+        let path = self.themes_dir.join(format!("{safe}.json"));
+        fs::write(&path, cleaned).map_err(|e| format!("写入主题失败: {e}"))?;
+        Ok(safe.to_string())
     }
 
     /// 删除用户主题。

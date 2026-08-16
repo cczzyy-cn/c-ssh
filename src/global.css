@@ -247,6 +247,10 @@ select {
   color: var(--color-danger);
 }
 
+.tab.dragging {
+  opacity: 0.5;
+}
+
 .status-dot {
   width: 8px;
   height: 8px;
