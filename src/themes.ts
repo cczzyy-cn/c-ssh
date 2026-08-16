@@ -12,6 +12,8 @@ export interface Palette {
   border: string;
   hover: string;
   selection: string;
+  /** 分隔线色（列表/标签分隔），默认派生自 border */
+  divider?: string;
   danger: string;
   success: string;
   warning: string;
@@ -40,6 +42,7 @@ export function deriveUi(p: Palette, overrides?: Record<string, string>): Record
     "--color-accent": p.accent,
     "--color-accent-fg": p.accentFg,
     "--color-border": p.border,
+    "--color-divider": p.divider ?? p.border,
     "--color-hover": p.hover,
     "--color-selection": p.selection,
     "--color-danger": p.danger,
@@ -75,6 +78,7 @@ const DARK_PALETTE: Palette = {
   accent: "#4f9cf9",
   accentFg: "#ffffff",
   border: "#383a3f",
+  divider: "#2e3035",
   hover: "#2c2e33",
   selection: "#3b4a5a",
   danger: "#e5534b",
@@ -92,6 +96,7 @@ const LIGHT_PALETTE: Palette = {
   accent: "#0969da",
   accentFg: "#ffffff",
   border: "#d0d7de",
+  divider: "#e4e7eb",
   hover: "#e4e7eb",
   selection: "#c8e1ff",
   danger: "#cf222e",
@@ -262,6 +267,7 @@ export function normalizeThemeDef(json: ThemeDefJson): ThemeDef {
       "--color-accent": "accent",
       "--color-accent-fg": "accentFg",
       "--color-border": "border",
+      "--color-divider": "divider",
       "--color-hover": "hover",
       "--color-selection": "selection",
       "--color-danger": "danger",

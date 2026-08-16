@@ -171,14 +171,15 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
                   className={`theme-card ${t.name === resolved.name ? "selected" : ""} ${t.type}`}
                   onClick={() => setThemeName(t.name)}
                 >
-                  <div className="theme-swatches">
-                    <span style={{ background: t.terminal.background }} />
-                    <span style={{ background: t.terminal.red }} />
-                    <span style={{ background: t.terminal.green }} />
-                    <span style={{ background: t.terminal.yellow }} />
-                    <span style={{ background: t.terminal.blue }} />
-                    <span style={{ background: t.terminal.magenta }} />
-                    <span style={{ background: t.terminal.cyan }} />
+                  <div className="theme-swatches" title="主 UI 配色（边框/分隔/悬停/选中等）">
+                    <span style={{ background: t.palette.bg }} title="背景" />
+                    <span style={{ background: t.palette.bgAlt }} title="次级背景" />
+                    <span style={{ background: t.palette.fg }} title="前景" />
+                    <span style={{ background: t.palette.accent }} title="强调色" />
+                    <span style={{ background: t.palette.border }} title="边框色" />
+                    <span style={{ background: t.palette.divider ?? t.palette.border }} title="分隔色" />
+                    <span style={{ background: t.palette.hover }} title="悬停色" />
+                    <span style={{ background: t.palette.selection }} title="选中色" />
                   </div>
                   <div className="theme-name">{t.name}</div>
                   {isUserTheme(t.name) && (

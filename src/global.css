@@ -66,7 +66,7 @@ select {
   height: 36px;
   flex-shrink: 0;
   background: var(--color-bg-alt);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-divider);
   display: flex;
   align-items: center;
   user-select: none;
@@ -178,7 +178,7 @@ select {
 .tabbar {
   display: flex;
   background: var(--color-bg-alt);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-divider);
   height: 36px;
   flex-shrink: 0;
 }
@@ -274,7 +274,7 @@ select {
   gap: 6px;
   padding: 0 10px;
   cursor: pointer;
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-divider);
   color: var(--color-fg-dim);
   font-size: var(--ui-fs);
   max-width: 240px;
@@ -441,7 +441,7 @@ select {
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .sftp-title {
@@ -724,7 +724,7 @@ select {
   flex-wrap: wrap;
   gap: 6px;
   padding: 10px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-divider);
 }
 
 .sidebar-footer .btn {
