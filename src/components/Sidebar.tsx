@@ -84,15 +84,6 @@ export default function Sidebar() {
     }
   };
 
-  const handleTest = async (conn: ConnectionConfig) => {
-    try {
-      await api.testConnection(conn.id);
-      alert(`连接「${conn.name}」测试成功`);
-    } catch (e) {
-      alert(`连接测试失败: ${e}`);
-    }
-  };
-
   const handleExport = async () => {
     try {
       const path = await dialogSave({
@@ -165,8 +156,8 @@ export default function Sidebar() {
                   </div>
                 </div>
                 <div className="conn-actions">
-                  <button className="icon-btn" title="测试连接" onClick={() => handleTest(c)}>
-                    ⚡
+                  <button className="icon-btn" title="打开连接" onClick={() => openConnection(c)}>
+                    ▶
                   </button>
                   <button className="icon-btn" title="编辑" onClick={() => handleEdit(c)}>
                     ✎
