@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
+import { open as dialogOpen, save as dialogSave, confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
 import { api } from "../ipc";
 import { useConnections } from "../stores/connections";
 import { openConnection } from "../stores/tabs";
@@ -11,8 +11,8 @@ import ThemeEditor from "./ThemeEditor";
 import type { ThemeDef } from "../themes";
 
 export default function Sidebar() {
-  const { connections, remove } = useConnections();
-  const { showForm, editingConn, openEditForm, closeForm } = useUi();
+  const { connections, remove, load } = useConnections();
+  const { showForm, editingConn, openNewForm, openEditForm, closeForm } = useUi();
   const [query, setQuery] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   // 主题编辑器状态（打开时隐藏主设置弹窗）
@@ -93,6 +93,37 @@ export default function Sidebar() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const path = await dialogSave({
+        title: "导出连接配置",
+        defaultPath: "c-ssh-connections.json",
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!path) return;
+      await api.exportConnections(path);
+      alert("导出成功（凭据不随文件导出，需在新机器重新输入密码）");
+    } catch (e) {
+      alert(`导出失败: ${e}`);
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      const path = await dialogOpen({
+        title: "导入连接配置",
+        multiple: false,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!path || Array.isArray(path)) return;
+      const count = await api.importConnections(path);
+      await load();
+      alert(`导入成功：${count} 条连接`);
+    } catch (e) {
+      alert(`导入失败: ${e}`);
+    }
+  };
+
   return (
     <aside className={`sidebar ${dragging ? "resizing" : ""}`} style={{ width }}>
       <div className="sidebar-header">
@@ -102,6 +133,13 @@ export default function Sidebar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <button
+          className="btn btn-primary btn-sm sidebar-new"
+          title="新建连接"
+          onClick={openNewForm}
+        >
+          + 新建
+        </button>
       </div>
 
       <div className="conn-list">
@@ -147,6 +185,10 @@ export default function Sidebar() {
         <button className="btn btn-sm" onClick={() => setShowSettings(true)}>
           ⚙ 设置
         </button>
+      </div>
+      <div className="sidebar-io">
+        <button className="btn btn-sm" onClick={handleImport}>⇩ 导入</button>
+        <button className="btn btn-sm" onClick={handleExport}>⇧ 导出</button>
       </div>
 
       {showForm && (
