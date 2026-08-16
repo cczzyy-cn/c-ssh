@@ -61,18 +61,11 @@ export default function TabBar() {
   const dropIndexRef = useRef<number | null>(null);
   dropIndexRef.current = dropIndex;
 
-  // 指示线位置（相对 tabbar-tabs 左边缘）
-  let indicatorLeft: number | null = null;
-  if (dropIndex !== null && draggingId !== null) {
-    const list = tabs;
-    if (dropIndex >= list.length) {
-      const el = tabElsRef.current[list[list.length - 1]?.id];
-      if (el) indicatorLeft = el.getBoundingClientRect().right;
-    } else {
-      const el = tabElsRef.current[list[dropIndex]?.id];
-      if (el) indicatorLeft = el.getBoundingClientRect().left;
-    }
-  }
+  // 拖拽目标标签：dropIndex 指向插入位置对应的标签（末尾无目标）
+  const dropTargetId =
+    dropIndex !== null && draggingId !== null && dropIndex < tabs.length
+      ? tabs[dropIndex].id
+      : null;
 
   return (
     <div className="tabbar">
@@ -85,7 +78,7 @@ export default function TabBar() {
             }}
             className={`tab ${t.id === activeId ? "active" : ""} ${t.status === "error" ? "error" : ""} ${
               t.id === draggingId ? "dragging" : ""
-            }`}
+            } ${t.id === dropTargetId ? "drop-target" : ""}`}
             onClick={() => setActive(t.id)}
             onMouseDown={(e) => onTabMouseDown(t.id, e)}
           >
@@ -102,9 +95,6 @@ export default function TabBar() {
             </button>
           </div>
         ))}
-        {indicatorLeft !== null && (
-          <div className="tab-drop-indicator" style={{ left: indicatorLeft }} />
-        )}
       </div>
       <div className="tabbar-right">
         <button

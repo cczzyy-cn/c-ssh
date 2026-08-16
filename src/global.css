@@ -191,16 +191,13 @@ select {
   position: relative;
 }
 
-/* 拖拽插入位置指示线 */
-.tab-drop-indicator {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  width: 2px;
-  background: var(--color-accent);
-  border-radius: 1px;
-  pointer-events: none;
-  z-index: 5;
+/* 拖拽：目标标签背景高亮（替代竖线） */
+.tab.drop-target {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+.tab.dragging {
+  opacity: 0.5;
 }
 
 .tab {
