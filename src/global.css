@@ -756,20 +756,6 @@ input[type="number"] {
   padding: 20px 10px;
 }
 
-/* 连接列表底部提示（双击打开）：鼠标悬停列表时显示 */
-.conn-hint {
-  display: none;
-  color: var(--color-fg-dim);
-  font-size: var(--ui-fs-xs);
-  text-align: center;
-  padding: 8px 10px;
-  opacity: 0.75;
-}
-
-.conn-list:hover .conn-hint {
-  display: block;
-}
-
 .sidebar-footer {
   display: flex;
   flex-wrap: wrap;

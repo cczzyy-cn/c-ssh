@@ -185,7 +185,7 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
                   {isUserTheme(t.name) && (
                     <>
                       <button
-                        className="icon-btn theme-delete"
+                        className="icon-btn theme-delete theme-delete-del"
                         title="编辑此主题"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -195,7 +195,7 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
                         ✎
                       </button>
                       <button
-                        className="icon-btn theme-delete theme-delete-del"
+                        className="icon-btn theme-delete"
                         title="删除此主题"
                         onClick={async (e) => {
                           e.stopPropagation();
