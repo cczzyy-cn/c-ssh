@@ -54,6 +54,39 @@ select {
   user-select: text;
 }
 
+/* 默认组件去掉系统背景色：勾选/单选/滑块用主题强调色 */
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: var(--color-accent);
+}
+
+/* 数字输入框上下箭头：背景透明融入主题（保留箭头） */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  background: transparent;
+  opacity: 1;
+}
+
+/* 全局滚动条：轨道背景透明，滑块用主题边框色 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-fg-dim);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ---- 布局 ---- */
 .app-root {
   height: 100%;
@@ -717,6 +750,15 @@ select {
   font-size: var(--ui-fs-sm);
   text-align: center;
   padding: 20px 10px;
+}
+
+/* 连接列表底部提示（双击打开） */
+.conn-hint {
+  color: var(--color-fg-dim);
+  font-size: var(--ui-fs-xs);
+  text-align: center;
+  padding: 8px 10px;
+  opacity: 0.75;
 }
 
 .sidebar-footer {

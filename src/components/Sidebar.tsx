@@ -179,6 +179,9 @@ export default function Sidebar() {
             ))}
           </div>
         ))}
+        {connections.length > 0 && groups.length > 0 && (
+          <div className="conn-hint">💡 双击连接打开终端</div>
+        )}
       </div>
 
       <div className="sidebar-footer">

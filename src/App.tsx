@@ -54,6 +54,13 @@ export default function App() {
     return () => document.removeEventListener("keydown", onKey, true);
   }, []);
 
+  // 全局禁用默认右键菜单
+  useEffect(() => {
+    const onCtx = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("contextmenu", onCtx);
+    return () => document.removeEventListener("contextmenu", onCtx);
+  }, []);
+
   // 全局终端事件分发（注册一次）
   useEffect(() => {
     let unlisteners: (() => void)[] = [];
