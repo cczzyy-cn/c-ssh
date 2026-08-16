@@ -40,6 +40,7 @@ pub fn run() {
             commands::save_user_theme,
             commands::delete_user_theme,
             commands::import_user_theme,
+            commands::export_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

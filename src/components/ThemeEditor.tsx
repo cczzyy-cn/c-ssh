@@ -18,10 +18,12 @@ interface Props {
 
 function ColorField({
   label,
+  desc,
   value,
   onChange,
 }: {
   label: string;
+  desc?: string;
   value: string;
   onChange: (v: string) => void;
 }) {
@@ -32,7 +34,10 @@ function ColorField({
         value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
         onChange={(e) => onChange(e.target.value)}
       />
-      <span className="color-label">{label}</span>
+      <span className="color-info">
+        <span className="color-label">{label}</span>
+        {desc && <span className="color-desc">{desc}</span>}
+      </span>
       <input
         className="color-hex"
         value={value}
@@ -43,22 +48,22 @@ function ColorField({
   );
 }
 
-const PALETTE_FIELDS: { key: keyof Palette; label: string }[] = [
-  { key: "bg", label: "背景" },
-  { key: "bgAlt", label: "面板" },
-  { key: "bgInput", label: "输入框" },
-  { key: "fg", label: "前景" },
-  { key: "fgDim", label: "次要文字" },
-  { key: "accent", label: "强调色" },
-  { key: "accentFg", label: "强调文字" },
-  { key: "border", label: "边框" },
-  { key: "hover", label: "悬停" },
-  { key: "selection", label: "选中" },
-  { key: "danger", label: "危险" },
-  { key: "success", label: "成功" },
-  { key: "warning", label: "警告" },
-  { key: "info", label: "信息" },
-  { key: "link", label: "链接" },
+const PALETTE_FIELDS: { key: keyof Palette; label: string; desc: string }[] = [
+  { key: "bg", label: "背景", desc: "窗口 / 终端内容背景" },
+  { key: "bgAlt", label: "面板", desc: "侧边栏 / 标签栏 / 文件栏" },
+  { key: "bgInput", label: "输入框", desc: "搜索框 / 表单输入" },
+  { key: "fg", label: "前景", desc: "正文 / 标题文字" },
+  { key: "fgDim", label: "次要文字", desc: "连接副行 / 提示 / 图标" },
+  { key: "accent", label: "强调色", desc: "主按钮 / 链接 / 焦点 / 选中" },
+  { key: "accentFg", label: "强调文字", desc: "主按钮上的文字" },
+  { key: "border", label: "边框", desc: "边框 / 分隔线 / 滚动条" },
+  { key: "hover", label: "悬停", desc: "列表项 / 按钮悬停背景" },
+  { key: "selection", label: "选中", desc: "文本选区 / 终端选区" },
+  { key: "danger", label: "危险", desc: "错误 / 删除 / 关闭悬停" },
+  { key: "success", label: "成功", desc: "在线状态点 / 成功提示" },
+  { key: "warning", label: "警告", desc: "连接中状态点 / 警告" },
+  { key: "info", label: "信息", desc: "信息提示" },
+  { key: "link", label: "链接", desc: "链接文字（默认=强调色）" },
 ];
 
 const ANSI_FIELDS: { key: string; label: string }[] = [
@@ -91,6 +96,29 @@ export default function ThemeEditor({ onClose, initial }: Props) {
   });
   const prevRef = useRef(resolved);
   const themeType = initial?.type ?? resolved.type;
+
+  // 窗口拖动
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
+  const onHeaderDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖动
+    e.preventDefault();
+    dragRef.current = { sx: e.clientX, sy: e.clientY, ox: offset.x, oy: offset.y };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      setOffset({
+        x: dragRef.current.ox + ev.clientX - dragRef.current.sx,
+        y: dragRef.current.oy + ev.clientY - dragRef.current.sy,
+      });
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   // 实时预览：任何色值变化立即应用到 UI 与已打开的终端
   useEffect(() => {
@@ -154,10 +182,13 @@ export default function ThemeEditor({ onClose, initial }: Props) {
   };
 
   return (
-    <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && handleCancel()}>
-      <div className="modal theme-editor">
-        <div className="modal-header">
-          <h3>主题编辑器</h3>
+    <div className="modal-mask">
+      <div
+        className="modal theme-editor"
+        style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+      >
+        <div className="modal-header theme-editor-header" onMouseDown={onHeaderDown}>
+          <h3>{initial ? `编辑主题：${initial.name}` : "新建主题"}</h3>
           <button className="icon-btn" onClick={handleCancel}>✕</button>
         </div>
 
@@ -172,13 +203,14 @@ export default function ThemeEditor({ onClose, initial }: Props) {
             <ColorField
               key={f.key}
               label={f.label}
+              desc={f.desc}
               value={String(palette[f.key] ?? "")}
               onChange={(v) => setPalette((p) => ({ ...p, [f.key]: v }))}
             />
           ))}
         </div>
 
-        <div className="group-title">终端 ANSI 色板</div>
+        <div className="group-title">终端 ANSI 色板（终端文字颜色）</div>
         <div className="color-grid">
           {ANSI_FIELDS.map((f) => (
             <ColorField

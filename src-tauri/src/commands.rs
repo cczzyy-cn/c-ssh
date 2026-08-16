@@ -285,6 +285,12 @@ pub fn import_user_theme(store: State<'_, Store>, path: String) -> Result<String
     log_err("import_user_theme", r)
 }
 
+/// 导出主题内容到指定路径（dialog save 选择路径）。
+#[tauri::command]
+pub fn export_theme(path: String, content: String) -> Result<(), String> {
+    fs::write(&path, content).map_err(|e| format!("写入主题文件失败: {e}"))
+}
+
 // ---- 全局错误日志 ----
 
 /// 前端 JS 错误转发到日志文件（window.onerror / unhandledrejection）。
