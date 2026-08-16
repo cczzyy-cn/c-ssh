@@ -47,6 +47,8 @@ interface TabsState {
   setStatus: (id: string, status: TabStatus, error?: string) => void;
   /** 拖拽调整标签顺序 */
   moveTab: (fromId: string, toId: string) => void;
+  /** 按目标下标移动标签（拖拽插入，0..tabs.length） */
+  moveTabToIndex: (fromId: string, toIndex: number) => void;
   registerTerminal: (id: string, term: Terminal) => void;
   unregisterTerminal: (id: string) => void;
   bufferData: (id: string, bytes: Uint8Array) => void;
@@ -101,6 +103,18 @@ export const useTabs = create<TabsState>((set, get) => ({
       const tabs = [...s.tabs];
       const [moved] = tabs.splice(from, 1);
       tabs.splice(to, 0, moved);
+      return { tabs };
+    }),
+  moveTabToIndex: (fromId, toIndex) =>
+    set((s) => {
+      const from = s.tabs.findIndex((t) => t.id === fromId);
+      if (from < 0) return s;
+      const tabs = [...s.tabs];
+      const [moved] = tabs.splice(from, 1);
+      let target = toIndex;
+      if (from < toIndex) target -= 1; // 移除自身后下标前移
+      target = Math.max(0, Math.min(tabs.length, target));
+      tabs.splice(target, 0, moved);
       return { tabs };
     }),
   registerTerminal: (id, term) =>

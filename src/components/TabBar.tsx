@@ -2,8 +2,9 @@ import { useRef, useState } from "react";
 import { openLocalShell, useTabs } from "../stores/tabs";
 
 export default function TabBar() {
-  const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, moveTab } = useTabs();
+  const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, moveTabToIndex } = useTabs();
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
   const dragRef = useRef<{ id: string; startX: number; dragging: boolean } | null>(null);
   const activeTab = tabs.find((t) => t.id === activeId);
@@ -11,7 +12,19 @@ export default function TabBar() {
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
   const sftpVisible = canSftp && sftpOpen;
 
-  /** 鼠标拖拽排序标签（WebView2 对 HTML5 DnD 支持不佳，改用 mouse 事件） */
+  /** 计算拖拽插入位置：鼠标 x 相对各标签中点 */
+  const calcDropIndex = (clientX: number): number => {
+    const list = useTabs.getState().tabs;
+    for (let i = 0; i < list.length; i++) {
+      const el = tabElsRef.current[list[i].id];
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (clientX < r.left + r.width / 2) return i;
+    }
+    return list.length;
+  };
+
+  /** 鼠标拖拽排序标签（插入指示器方案：拖动过程不重排，松手一次移动，避免闪烁） */
   const onTabMouseDown = (id: string, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖拽
     e.preventDefault();
@@ -24,28 +37,42 @@ export default function TabBar() {
         if (Math.abs(ev.clientX - st.startX) < 5) return; // 位移阈值
         st.dragging = true;
         setDraggingId(st.id);
+        document.body.style.cursor = "grabbing";
       }
-      // 根据鼠标 x 找到目标标签，实时换位
-      for (const tab of useTabs.getState().tabs) {
-        const el = tabElsRef.current[tab.id];
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        if (ev.clientX >= r.left && ev.clientX <= r.right && tab.id !== st.id) {
-          moveTab(st.id, tab.id);
-          st.id = tab.id; // 拖拽的标签跟随到新位置
-          break;
-        }
-      }
+      setDropIndex(calcDropIndex(ev.clientX));
     };
     const onUp = () => {
+      const st = dragRef.current;
+      if (st?.dragging && dropIndexRef.current !== null) {
+        moveTabToIndex(st.id, dropIndexRef.current);
+      }
       dragRef.current = null;
       setDraggingId(null);
+      setDropIndex(null);
+      document.body.style.cursor = "";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
+
+  // 供 onUp 读取最新的 dropIndex
+  const dropIndexRef = useRef<number | null>(null);
+  dropIndexRef.current = dropIndex;
+
+  // 指示线位置（相对 tabbar-tabs 左边缘）
+  let indicatorLeft: number | null = null;
+  if (dropIndex !== null && draggingId !== null) {
+    const list = tabs;
+    if (dropIndex >= list.length) {
+      const el = tabElsRef.current[list[list.length - 1]?.id];
+      if (el) indicatorLeft = el.getBoundingClientRect().right;
+    } else {
+      const el = tabElsRef.current[list[dropIndex]?.id];
+      if (el) indicatorLeft = el.getBoundingClientRect().left;
+    }
+  }
 
   return (
     <div className="tabbar">
@@ -75,6 +102,9 @@ export default function TabBar() {
             </button>
           </div>
         ))}
+        {indicatorLeft !== null && (
+          <div className="tab-drop-indicator" style={{ left: indicatorLeft }} />
+        )}
       </div>
       <div className="tabbar-right">
         <button

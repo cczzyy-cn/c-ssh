@@ -188,6 +188,27 @@ select {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
+  position: relative;
+}
+
+/* 拖拽插入位置指示线 */
+.tab-drop-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--color-accent);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tab {
+  cursor: grab;
+}
+
+.tab:active {
+  cursor: grabbing;
 }
 
 .tabbar-right {
