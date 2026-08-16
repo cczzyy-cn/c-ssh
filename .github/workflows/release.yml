@@ -67,3 +67,15 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Windows：额外上传免安装便携版 exe（双击直接运行）
+      - name: Upload portable exe (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $portable = "src-tauri/target/release/c-ssh_${ver}_x64_portable.exe"
+          Copy-Item src-tauri/target/release/c-ssh.exe $portable
+          gh release upload "v$ver" $portable --clobber
