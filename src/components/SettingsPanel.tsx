@@ -29,7 +29,7 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
   }, []);
 
   return (
-    <div className="modal-mask modal-mask-plain" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-settings modal-fixed-header">
         <div className="modal-header">
           <h3>设置</h3>

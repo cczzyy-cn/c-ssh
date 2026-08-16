@@ -184,7 +184,7 @@ export default function ThemeEditor({ onClose, initial }: Props) {
   return (
     <div className="modal-mask modal-mask-plain">
       <div
-        className="modal theme-editor"
+        className="modal theme-editor modal-fixed-header"
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
       >
         <div className="modal-header theme-editor-header" onMouseDown={onHeaderDown}>
@@ -192,37 +192,39 @@ export default function ThemeEditor({ onClose, initial }: Props) {
           <button className="icon-btn" onClick={handleCancel}>✕</button>
         </div>
 
-        <label className="theme-name-input">
-          主题名称
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
+        <div className="modal-body">
+          <label className="theme-name-input">
+            主题名称
+            <input value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
 
-        <div className="group-title">基础色板</div>
-        <div className="color-grid">
-          {PALETTE_FIELDS.map((f) => (
-            <ColorField
-              key={f.key}
-              label={f.label}
-              desc={f.desc}
-              value={String(palette[f.key] ?? "")}
-              onChange={(v) => setPalette((p) => ({ ...p, [f.key]: v }))}
-            />
-          ))}
+          <div className="group-title">基础色板</div>
+          <div className="color-grid">
+            {PALETTE_FIELDS.map((f) => (
+              <ColorField
+                key={f.key}
+                label={f.label}
+                desc={f.desc}
+                value={String(palette[f.key] ?? "")}
+                onChange={(v) => setPalette((p) => ({ ...p, [f.key]: v }))}
+              />
+            ))}
+          </div>
+
+          <div className="group-title">终端 ANSI 色板（终端文字颜色）</div>
+          <div className="color-grid">
+            {ANSI_FIELDS.map((f) => (
+              <ColorField
+                key={f.key}
+                label={f.label}
+                value={terminal[f.key] ?? ""}
+                onChange={(v) => setTerminal((t) => ({ ...t, [f.key]: v }))}
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="group-title">终端 ANSI 色板（终端文字颜色）</div>
-        <div className="color-grid">
-          {ANSI_FIELDS.map((f) => (
-            <ColorField
-              key={f.key}
-              label={f.label}
-              value={terminal[f.key] ?? ""}
-              onChange={(v) => setTerminal((t) => ({ ...t, [f.key]: v }))}
-            />
-          ))}
-        </div>
-
-        <div className="modal-footer">
+        <div className="modal-footer theme-editor-footer">
           <button className="btn" onClick={handleCancel}>取消</button>
           <button className="btn btn-primary" onClick={handleSave}>保存主题</button>
         </div>

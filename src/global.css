@@ -780,6 +780,12 @@ select {
   padding-right: 4px;
 }
 
+/* 主题编辑器底部按钮固定 */
+.theme-editor-footer {
+  flex-shrink: 0;
+  padding-top: 10px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
