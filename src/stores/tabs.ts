@@ -210,13 +210,6 @@ export async function openConnection(conn: ConnectionConfig): Promise<void> {
   });
 }
 
-export async function openEcho(): Promise<void> {
-  const { addTab, setStatus } = useTabs.getState();
-  const sid = await api.openEchoSession();
-  addTab({ id: sid, title: "演示终端 (echo)", status: "connected", order: nextOrder++ });
-  setStatus(sid, "connected");
-}
-
 /** 打开软件内本地命令行（portable-pty 会话，无 connId 故不支持 SFTP）。 */
 export async function openLocalShell(): Promise<void> {
   const { addTab } = useTabs.getState();

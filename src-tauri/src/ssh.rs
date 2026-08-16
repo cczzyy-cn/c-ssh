@@ -7,7 +7,6 @@ use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{channel as mpsc_channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
@@ -52,8 +51,6 @@ pub struct ForwardStatus {
 pub enum SessionKind {
     /// 真实 SSH 会话。
     Ssh(SshSession),
-    /// 本地演示（echo）会话：无需网络，用于无服务器时验证终端链路。
-    Echo { tx: Sender<String> },
     /// 本地 shell 会话（portable-pty）：软件内打开本机命令行。
     Local {
         writer: Arc<Mutex<Box<dyn Write + Send>>>,
@@ -86,33 +83,6 @@ const READ_BUF: usize = 32 * 1024;
 
 fn emit(app: &AppHandle, event: &str, payload: impl Serialize + Clone) {
     let _ = app.emit(event, payload);
-}
-
-/// 打开本地 echo 演示会话：输入原样回显。
-pub fn open_echo(app: AppHandle, mgr: &SessionManager) -> Result<String, String> {
-    let sid = uuid::Uuid::new_v4().to_string();
-    let (tx, rx) = mpsc_channel::<String>();
-    let app2 = app.clone();
-    let sid2 = sid.clone();
-    std::thread::spawn(move || {
-        while let Ok(line) = rx.recv() {
-            let _ = app2.emit(
-                "term:data",
-                TermData {
-                    session_id: sid2.clone(),
-                    data: line,
-                },
-            );
-        }
-        emit(&app2, "term:exit", TermExit { session_id: sid2, code: 0 });
-    });
-    mgr.sessions.lock().unwrap().insert(
-        sid.clone(),
-        Arc::new(Mutex::new(LiveSession {
-            kind: SessionKind::Echo { tx },
-        })),
-    );
-    Ok(sid)
 }
 
 /// 打开软件内本地命令行会话：portable-pty 启动本机 shell，复用终端通道。
@@ -619,10 +589,6 @@ pub fn write_input(mgr: &SessionManager, sid: &str, data: &str) -> Result<(), St
             // 会丢弃接收缓冲数据（曾导致长按输入时回显丢失、数据错乱断开）。
             Ok(())
         }
-        SessionKind::Echo { tx } => {
-            tx.send(data.to_string()).map_err(|e| format!("写入失败: {e}"))?;
-            Ok(())
-        }
         SessionKind::Local { writer, .. } => {
             let mut w = writer.lock().unwrap();
             w.write_all(&decoded).map_err(|e| format!("写入失败: {e}"))
@@ -670,7 +636,6 @@ pub fn close_session(mgr: &SessionManager, sid: &str) -> Result<(), String> {
                 // 终止本地 shell 进程，PTY 读线程随即退出
                 child.lock().unwrap().kill().ok();
             }
-            SessionKind::Echo { .. } => {}
         }
     }
     map.remove(sid);

@@ -19,7 +19,6 @@ pub fn run() {
             commands::export_connections,
             commands::import_connections,
             commands::open_session,
-            commands::open_echo_session,
             commands::open_local_shell,
             commands::write_input,
             commands::resize,

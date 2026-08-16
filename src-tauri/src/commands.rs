@@ -124,16 +124,6 @@ pub async fn open_session(app: AppHandle, conn_id: String) -> Result<String, Str
 }
 
 #[tauri::command]
-pub async fn open_echo_session(app: AppHandle) -> Result<String, String> {
-    let handle = app.clone();
-    run_blocking("open_echo_session", move || {
-        let mgr = handle.state::<SessionManager>();
-        ssh::open_echo(handle.clone(), &mgr)
-    })
-    .await
-}
-
-#[tauri::command]
 pub async fn open_local_shell(app: AppHandle) -> Result<String, String> {
     let handle = app.clone();
     run_blocking("open_local_shell", move || {

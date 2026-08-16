@@ -119,9 +119,7 @@ export default function App() {
                   <div className="empty-state">
                     <div className="empty-title">c-ssh</div>
                     <div className="empty-sub">
-                      在左侧选择连接双击打开终端，
-                      <br />
-                      或点击「演示终端」无需服务器体验。
+                      在左侧选择连接双击打开终端。
                     </div>
                   </div>
                 ) : (
