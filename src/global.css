@@ -676,7 +676,9 @@ select {
 }
 
 .btn-primary:hover {
-  filter: brightness(1.1);
+  /* 加深而非提亮：避免亮色 accent 被推成白色导致白字不可见 */
+  background: color-mix(in srgb, var(--color-accent) 86%, #000);
+  border-color: color-mix(in srgb, var(--color-accent) 86%, #000);
 }
 
 .btn-sm {
