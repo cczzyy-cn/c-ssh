@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { BUILTIN_THEMES } from "../themes";
+import { open as dialogOpen, confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
+import { getAllThemeDefs, isUserTheme } from "../themes";
 import { useTheme, type ThemeMode } from "../stores/theme";
 import { useSettings, type WindowSize } from "../stores/settings";
 import { api } from "../ipc";
@@ -81,9 +82,31 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           </label>
 
           <div className="span-2">
-            <div className="group-title">选择主题</div>
+            <div className="theme-toolbar">
+              <div className="group-title" style={{ padding: 0 }}>选择主题</div>
+              <button
+                className="btn btn-sm"
+                title="从 JSON 文件导入主题"
+                onClick={async () => {
+                  const path = await dialogOpen({
+                    title: "导入主题",
+                    multiple: false,
+                    filters: [{ name: "JSON", extensions: ["json"] }],
+                  });
+                  if (!path || Array.isArray(path)) return;
+                  try {
+                    await api.importUserTheme(path);
+                    await useTheme.getState().loadUserThemes();
+                  } catch (e) {
+                    alert(`导入失败: ${e}`);
+                  }
+                }}
+              >
+                ⇩ 导入主题
+              </button>
+            </div>
             <div className="theme-grid">
-              {BUILTIN_THEMES.map((t) => (
+              {getAllThemeDefs().map((t) => (
                 <div
                   key={t.name}
                   className={`theme-card ${t.name === resolved.name ? "selected" : ""} ${t.type}`}
@@ -99,6 +122,24 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                     <span style={{ background: t.terminal.cyan }} />
                   </div>
                   <div className="theme-name">{t.name}</div>
+                  {isUserTheme(t.name) && (
+                    <button
+                      className="icon-btn theme-delete"
+                      title="删除此主题"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!(await dialogConfirm(`确定删除主题「${t.name}」？`, { title: "删除确认", kind: "warning" }))) return;
+                        try {
+                          await api.deleteUserTheme(t.name);
+                          await useTheme.getState().loadUserThemes();
+                        } catch (err) {
+                          alert(`删除失败: ${err}`);
+                        }
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

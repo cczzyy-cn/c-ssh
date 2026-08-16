@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { getTheme, type ResolvedTheme } from "../themes";
+import { api } from "../ipc";
+import {
+  getTheme,
+  isUserTheme,
+  registerUserThemes,
+  type ResolvedTheme,
+} from "../themes";
 
 export type ThemeMode = "dark" | "light" | "system";
 
@@ -9,8 +15,11 @@ interface ThemeState {
   themeName: string;
   /** 实际生效的主题（system 模式按系统解析） */
   resolved: ResolvedTheme;
+  /** 用户主题是否已加载 */
+  userThemesLoaded: boolean;
   setMode: (mode: ThemeMode) => void;
   setThemeName: (name: string) => void;
+  loadUserThemes: () => Promise<void>;
 }
 
 const STORAGE_KEY = "c-ssh:theme";
@@ -67,6 +76,7 @@ export const useTheme = create<ThemeState>((set, get) => ({
   mode: persisted.mode,
   themeName: persisted.themeName,
   resolved: initialResolved,
+  userThemesLoaded: false,
   setMode: (mode) => {
     const next = resolve(mode, get().themeName);
     applyBoth(next);
@@ -78,6 +88,22 @@ export const useTheme = create<ThemeState>((set, get) => ({
     applyBoth(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: get().mode, themeName: name }));
     set({ themeName: name, resolved: next });
+  },
+  loadUserThemes: async () => {
+    try {
+      const defs = await api.listUserThemes();
+      registerUserThemes(defs);
+      // 若当前主题是用户主题，刷新实际生效主题
+      const s = get();
+      if (isUserTheme(s.themeName)) {
+        const next = resolve(s.mode, s.themeName);
+        applyBoth(next);
+        set({ resolved: next });
+      }
+      set({ userThemesLoaded: true });
+    } catch {
+      set({ userThemesLoaded: true });
+    }
   },
 }));
 

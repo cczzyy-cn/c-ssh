@@ -8,6 +8,7 @@ import { b64ToBytes, onTermEvent, type TermDataEvent, type TermErrorEvent, type 
 import { useConnections } from "./stores/connections";
 import { applyWindowSize, useSettings } from "./stores/settings";
 import { scheduleReconnect, useTabs } from "./stores/tabs";
+import { useTheme } from "./stores/theme";
 
 export default function App() {
   const { tabs, activeId, sftpOpen } = useTabs();
@@ -17,6 +18,11 @@ export default function App() {
   useEffect(() => {
     load().catch((e) => console.error("加载连接失败:", e));
   }, [load]);
+
+  // 加载用户自定义主题
+  useEffect(() => {
+    useTheme.getState().loadUserThemes();
+  }, []);
 
   // 恢复持久化的窗口大小
   useEffect(() => {

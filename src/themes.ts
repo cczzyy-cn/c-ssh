@@ -1,4 +1,6 @@
 /** 基础色板（主题的种子色，用户可编辑的核心） */
+import type { ThemeDefJson } from "./ipc";
+
 export interface Palette {
   bg: string;
   bgAlt: string;
@@ -225,9 +227,63 @@ export const BUILTIN_THEMES: ThemeDef[] = [
 /** 组装后的完整主题（ui 由 palette 派生） */
 export type ResolvedTheme = ReturnType<typeof getTheme>;
 
+/** 用户主题注册表（由后端 themes 目录加载） */
+let userThemes: ThemeDef[] = [];
+
+/** 注册用户主题（从后端加载的 JSON，兼容旧格式：无 palette 时从 ui 反推）。 */
+export function registerUserThemes(defs: ThemeDefJson[]): void {
+  userThemes = defs.map(normalizeThemeDef);
+}
+
+export function getAllThemeDefs(): ThemeDef[] {
+  return [...BUILTIN_THEMES, ...userThemes];
+}
+
+export function isUserTheme(name: string): boolean {
+  return userThemes.some((t) => t.name === name);
+}
+
+/** 兼容旧格式：无 palette 时从 ui 变量反推核心色到 palette。 */
+export function normalizeThemeDef(json: ThemeDefJson): ThemeDef {
+  const base = json.type === "light" ? LIGHT_PALETTE : DARK_PALETTE;
+  const palette: Palette = { ...base };
+  if (json.palette) {
+    Object.assign(palette, json.palette as Partial<Palette>);
+  } else if (json.ui) {
+    const m: Record<string, keyof Palette> = {
+      "--color-bg": "bg",
+      "--color-bg-alt": "bgAlt",
+      "--color-bg-input": "bgInput",
+      "--color-fg": "fg",
+      "--color-fg-dim": "fgDim",
+      "--color-accent": "accent",
+      "--color-accent-fg": "accentFg",
+      "--color-border": "border",
+      "--color-hover": "hover",
+      "--color-selection": "selection",
+      "--color-danger": "danger",
+      "--color-success": "success",
+      "--color-warning": "warning",
+      "--color-info": "info",
+      "--color-link": "link",
+    };
+    for (const [k, field] of Object.entries(m)) {
+      const v = json.ui[k];
+      if (v) (palette as unknown as Record<string, string>)[field] = v;
+    }
+  }
+  return {
+    name: json.name,
+    type: json.type,
+    palette,
+    ui: json.ui ?? undefined,
+    terminal: json.terminal ?? {},
+  };
+}
+
 /** 组装完整主题：ui 由 palette 派生（含覆盖），terminal 补全基础色 */
 export function getTheme(name: string): { name: string; type: "dark" | "light"; palette: Palette; ui: Record<string, string>; terminal: Record<string, string> } {
-  const t = BUILTIN_THEMES.find((x) => x.name === name) ?? BUILTIN_THEMES[0];
+  const t = [...BUILTIN_THEMES, ...userThemes].find((x) => x.name === name) ?? BUILTIN_THEMES[0];
   return {
     name: t.name,
     type: t.type,

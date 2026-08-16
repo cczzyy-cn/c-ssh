@@ -43,6 +43,10 @@ export const api = {
   clearLog: () => invoke<void>("clear_log"),
   openLogDir: () => invoke<void>("open_log_dir"),
   openLocalTerminal: () => invoke<void>("open_local_terminal"),
+  listUserThemes: () => invoke<ThemeDefJson[]>("list_user_themes"),
+  saveUserTheme: (content: string) => invoke<string>("save_user_theme", { content }),
+  deleteUserTheme: (name: string) => invoke<void>("delete_user_theme", { name }),
+  importUserTheme: (path: string) => invoke<string>("import_user_theme", { path }),
 };
 
 export interface SftpEntry {
@@ -50,6 +54,15 @@ export interface SftpEntry {
   isDir: boolean;
   size: number;
   mtime: number;
+}
+
+/** 主题 JSON（用户自定义主题的持久化格式，palette/ui/terminal 均可选） */
+export interface ThemeDefJson {
+  name: string;
+  type: "dark" | "light";
+  palette?: Record<string, string>;
+  ui?: Record<string, string>;
+  terminal?: Record<string, string>;
 }
 
 export interface TermDataEvent {

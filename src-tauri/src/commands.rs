@@ -258,6 +258,33 @@ pub async fn sftp_realpath(
     .await
 }
 
+// ---- 用户自定义主题 ----
+
+#[tauri::command]
+pub fn list_user_themes(store: State<'_, Store>) -> Result<Vec<serde_json::Value>, String> {
+    log_err("list_user_themes", Ok(store.list_user_themes()))
+}
+
+#[tauri::command]
+pub fn save_user_theme(store: State<'_, Store>, content: String) -> Result<String, String> {
+    log_err("save_user_theme", store.save_user_theme(&content))
+}
+
+#[tauri::command]
+pub fn delete_user_theme(store: State<'_, Store>, name: String) -> Result<(), String> {
+    log_err("delete_user_theme", store.delete_user_theme(&name))
+}
+
+/// 从外部 JSON 文件导入主题（dialog 选择路径）。
+#[tauri::command]
+pub fn import_user_theme(store: State<'_, Store>, path: String) -> Result<String, String> {
+    let r = (|| -> Result<String, String> {
+        let s = fs::read_to_string(&path).map_err(|e| format!("读取主题文件失败: {e}"))?;
+        store.save_user_theme(&s)
+    })();
+    log_err("import_user_theme", r)
+}
+
 // ---- 全局错误日志 ----
 
 /// 前端 JS 错误转发到日志文件（window.onerror / unhandledrejection）。

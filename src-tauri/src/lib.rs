@@ -36,6 +36,10 @@ pub fn run() {
             commands::clear_log,
             commands::open_log_dir,
             commands::open_local_terminal,
+            commands::list_user_themes,
+            commands::save_user_theme,
+            commands::delete_user_theme,
+            commands::import_user_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

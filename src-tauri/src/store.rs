@@ -150,9 +150,10 @@ pub struct ConnectionConfig {
     pub theme: Option<String>,
 }
 
-/// 配置存储：连接配置存 JSON 文件，密码/口令存 OS keyring。
+/// 配置存储：连接配置存 JSON 文件，密码/口令存 OS keyring，用户主题存 themes 目录。
 pub struct Store {
     config_path: PathBuf,
+    themes_dir: PathBuf,
 }
 
 impl Store {
@@ -161,9 +162,59 @@ impl Store {
             .unwrap_or_else(|| PathBuf::from("."))
             .join("c-ssh");
         fs::create_dir_all(&dir).ok();
+        let themes_dir = dir.join("themes");
+        fs::create_dir_all(&themes_dir).ok();
         Self {
             config_path: dir.join("connections.json"),
+            themes_dir,
         }
+    }
+
+    /// 用户主题目录（`config_dir/c-ssh/themes/`）。
+    pub fn themes_dir(&self) -> &PathBuf {
+        &self.themes_dir
+    }
+
+    /// 列出全部用户主题（解析每个 *.json 为 ThemeDef）。
+    pub fn list_user_themes(&self) -> Vec<serde_json::Value> {
+        let mut out = Vec::new();
+        if let Ok(entries) = fs::read_dir(&self.themes_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                    continue;
+                }
+                if let Ok(s) = fs::read_to_string(&path) {
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s) {
+                        out.push(v);
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// 保存用户主题（文件名取自 JSON 的 name 字段）。
+    pub fn save_user_theme(&self, content: &str) -> Result<String, String> {
+        let v: serde_json::Value =
+            serde_json::from_str(content).map_err(|e| format!("主题 JSON 解析失败: {e}"))?;
+        let name = v
+            .get("name")
+            .and_then(|n| n.as_str())
+            .ok_or("主题缺少 name 字段")?
+            .to_string();
+        let path = self.themes_dir.join(format!("{name}.json"));
+        fs::write(&path, content).map_err(|e| format!("写入主题失败: {e}"))?;
+        Ok(name)
+    }
+
+    /// 删除用户主题。
+    pub fn delete_user_theme(&self, name: &str) -> Result<(), String> {
+        let path = self.themes_dir.join(format!("{name}.json"));
+        if path.exists() {
+            fs::remove_file(&path).map_err(|e| format!("删除主题失败: {e}"))?;
+        }
+        Ok(())
     }
 
     pub fn load_connections(&self) -> Vec<ConnectionConfig> {
