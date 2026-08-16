@@ -772,6 +772,30 @@ select {
   cursor: not-allowed;
 }
 
+/* modal 底部按钮行 */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* modal 内输入框 */
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-input);
+  color: var(--color-fg);
+  font-size: var(--ui-fs);
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--color-accent);
+}
+
 .icon-btn {
   background: none;
   border: none;

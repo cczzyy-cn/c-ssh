@@ -47,6 +47,7 @@ export const api = {
   saveUserTheme: (content: string) => invoke<string>("save_user_theme", { content }),
   deleteUserTheme: (name: string) => invoke<void>("delete_user_theme", { name }),
   importUserTheme: (path: string) => invoke<string>("import_user_theme", { path }),
+  readTextFile: (path: string) => invoke<string>("read_text_file", { path }),
   exportTheme: (path: string, content: string) => invoke<void>("export_theme", { path, content }),
 };
 

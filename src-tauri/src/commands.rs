@@ -285,6 +285,12 @@ pub fn import_user_theme(store: State<'_, Store>, path: String) -> Result<String
     log_err("import_user_theme", r)
 }
 
+/// 读取文本文件内容（导入主题前预览，供前端改名）。
+#[tauri::command]
+pub fn read_text_file(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| format!("读取文件失败: {e}"))
+}
+
 /// 导出主题内容到指定路径（dialog save 选择路径）。
 #[tauri::command]
 pub fn export_theme(path: String, content: String) -> Result<(), String> {

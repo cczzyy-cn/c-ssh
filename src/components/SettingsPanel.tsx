@@ -23,6 +23,8 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
   const [sizeInput, setSizeInput] = useState<WindowSize>(windowSize);
   const [showLog, setShowLog] = useState(false);
   const [logPath, setLogPath] = useState("");
+  // 导入主题改名弹窗：选择文件后输入新主题名
+  const [importDraft, setImportDraft] = useState<{ name: string; content: string } | null>(null);
 
   useEffect(() => {
     api.getLogPath().then(setLogPath).catch(() => undefined);
@@ -140,8 +142,19 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
                   });
                   if (!path || Array.isArray(path)) return;
                   try {
-                    await api.importUserTheme(path);
-                    await useTheme.getState().loadUserThemes();
+                    // 选择文件后先读内容，弹输入框输入新主题名
+                    const content = await api.readTextFile(path);
+                    let json: any;
+                    try {
+                      json = JSON.parse(content);
+                    } catch {
+                      throw "主题 JSON 解析失败";
+                    }
+                    const defaultName =
+                      (typeof json?.name === "string" && json.name) ||
+                      path.split(/[\\/]/).pop()?.replace(/\.json$/i, "") ||
+                      "新主题";
+                    setImportDraft({ name: defaultName, content });
                   } catch (e) {
                     alert(`导入失败: ${e}`);
                   }
@@ -221,6 +234,70 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
         </div>{/* modal-body 结束 */}
 
         {showLog && <LogViewer onClose={() => setShowLog(false)} />}
+
+        {/* 导入主题：输入新主题名 */}
+        {importDraft && (
+          <div className="modal-mask" onClick={() => setImportDraft(null)}>
+            <div className="modal import-theme-modal" onClick={(e) => e.stopPropagation()}>
+              <h3 style={{ margin: "0 0 12px" }}>导入主题</h3>
+              <label style={{ display: "block", marginBottom: 6, color: "var(--color-fg-dim)" }}>
+                输入新主题名
+              </label>
+              <input
+                className="form-input"
+                value={importDraft.name}
+                autoFocus
+                onChange={(e) => setImportDraft({ ...importDraft, name: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const name = importDraft.name.trim();
+                    if (!name) return;
+                    try {
+                      const json = JSON.parse(importDraft.content);
+                      json.name = name;
+                      api
+                        .saveUserTheme(JSON.stringify(json))
+                        .then(async () => {
+                          await useTheme.getState().loadUserThemes();
+                          setImportDraft(null);
+                        })
+                        .catch((err) => alert(`导入失败: ${err}`));
+                    } catch {
+                      alert("主题 JSON 解析失败");
+                    }
+                  }
+                }}
+              />
+              <div className="modal-actions" style={{ marginTop: 14 }}>
+                <button className="btn" onClick={() => setImportDraft(null)}>
+                  取消
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const name = importDraft.name.trim();
+                    if (!name) return;
+                    try {
+                      const json = JSON.parse(importDraft.content);
+                      json.name = name;
+                      api
+                        .saveUserTheme(JSON.stringify(json))
+                        .then(async () => {
+                          await useTheme.getState().loadUserThemes();
+                          setImportDraft(null);
+                        })
+                        .catch((err) => alert(`导入失败: ${err}`));
+                    } catch {
+                      alert("主题 JSON 解析失败");
+                    }
+                  }}
+                >
+                  确定
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

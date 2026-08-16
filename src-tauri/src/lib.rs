@@ -40,6 +40,7 @@ pub fn run() {
             commands::save_user_theme,
             commands::delete_user_theme,
             commands::import_user_theme,
+            commands::read_text_file,
             commands::export_theme,
         ])
         .run(tauri::generate_context!())
