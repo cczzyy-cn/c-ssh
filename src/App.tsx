@@ -29,6 +29,24 @@ export default function App() {
     applyWindowSize(useSettings.getState().windowSize);
   }, []);
 
+  // Ctrl+Tab：切换连接标签（有上一个切上一个，否则切下一个，单标签无操作）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.key !== "Tab") return;
+      e.preventDefault();
+      const { tabs, activeId, setActive } = useTabs.getState();
+      if (tabs.length < 2) return; // 没有下一个，无操作
+      const idx = tabs.findIndex((t) => t.id === activeId);
+      if (idx > 0) {
+        setActive(tabs[idx - 1].id); // 有上一个：切回上一个
+      } else {
+        setActive(tabs[1].id); // 没有上一个：切换下一个
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // 全局终端事件分发（注册一次）
   useEffect(() => {
     let unlisteners: (() => void)[] = [];
