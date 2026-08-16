@@ -6,22 +6,29 @@ export default function TabBar() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
-  const dragRef = useRef<{
-    id: string;
-    startX: number;
-    dragging: boolean;
-    lastHit: string | null; // 最后一次命中的目标标签（同步存储，避免渲染延迟）
-  } | null>(null);
+  const dragRef = useRef<{ id: string; startX: number; dragging: boolean } | null>(null);
   const activeTab = tabs.find((t) => t.id === activeId);
   // 仅真实连接会话可开关文件面板（无连接/连接中/演示会话禁用）
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
   const sftpVisible = canSftp && sftpOpen;
 
-  /** 鼠标拖拽：拖动中标签内容不动，仅高亮目标标签，松手时互换位置 */
+  /** 查询鼠标 x 所在的标签（排除自身），未命中返回 null */
+  const findTarget = (clientX: number, selfId: string): string | null => {
+    for (const tab of useTabs.getState().tabs) {
+      if (tab.id === selfId) continue;
+      const el = tabElsRef.current[tab.id];
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right) return tab.id;
+    }
+    return null;
+  };
+
+  /** 鼠标拖拽：拖动中标签内容不动，仅高亮目标标签，松手时按松手位置互换 */
   const onTabMouseDown = (id: string, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖拽
     e.preventDefault();
-    dragRef.current = { id, startX: e.clientX, dragging: false, lastHit: null };
+    dragRef.current = { id, startX: e.clientX, dragging: false };
 
     const onMove = (ev: MouseEvent) => {
       const st = dragRef.current;
@@ -32,26 +39,14 @@ export default function TabBar() {
         setDraggingId(st.id);
         document.body.style.cursor = "grabbing";
       }
-      // 只更新目标高亮，不改变标签顺序
-      let hit: string | null = null;
-      for (const tab of useTabs.getState().tabs) {
-        if (tab.id === st.id) continue;
-        const el = tabElsRef.current[tab.id];
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        if (ev.clientX >= r.left && ev.clientX <= r.right) {
-          hit = tab.id;
-          break;
-        }
-      }
-      st.lastHit = hit; // 同步记录目标
-      setDropTargetId(hit);
+      setDropTargetId(findTarget(ev.clientX, st.id));
     };
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
       const st = dragRef.current;
-      // 直接读 dragRef 同步目标，避免 setState 渲染延迟导致互换未执行
-      if (st?.dragging && st.lastHit) {
-        swapTabs(st.id, st.lastHit); // 释放鼠标后互换位置
+      if (st?.dragging) {
+        // 用松手位置重新计算目标（最后 onMove 的位置可能滞后于松手位置）
+        const target = findTarget(ev.clientX, st.id);
+        if (target) swapTabs(st.id, target);
       }
       dragRef.current = null;
       setDraggingId(null);
