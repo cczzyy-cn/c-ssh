@@ -20,7 +20,15 @@ export default function TerminalPane({ tab, active }: { tab: Tab; active: boolea
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState("");
 
-  const themeName = tab.theme || resolved.name;
+  // 连接级主题跟随全局深浅模式联动：连接指定的主题类型与当前模式不一致时，
+  // 自动使用对应的默认亮/暗主题；切回匹配模式后恢复连接指定主题。
+  const themeName = tab.theme
+    ? getTheme(tab.theme).type === resolved.type
+      ? tab.theme
+      : resolved.type === "dark"
+        ? "默认暗色"
+        : "默认亮色"
+    : resolved.name;
   const theme = getTheme(themeName);
   // 注入 xterm 自定义滚动条颜色（跟随主题），统一样式
   const terminalTheme = {
