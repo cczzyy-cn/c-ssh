@@ -985,7 +985,16 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 6px;
+}
+
+/* 主题操作按钮组：整体靠右 */
+.theme-toolbar-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* ---- 主题编辑器 ---- */

@@ -95,45 +95,46 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
           <div className="span-2">
             <div className="theme-toolbar">
               <div className="group-title" style={{ padding: 0 }}>选择主题</div>
-              <button
-                className="btn btn-sm"
-                title="导出当前生效主题为 JSON 文件"
-                onClick={async () => {
-                  const path = await dialogSave({
-                    title: "导出主题",
-                    defaultPath: `${resolved.name}.json`,
-                    filters: [{ name: "JSON", extensions: ["json"] }],
-                  });
-                  if (!path || Array.isArray(path)) return;
-                  try {
-                    await api.exportTheme(
-                      path,
-                      JSON.stringify(
-                        { name: resolved.name, type: resolved.type, palette: resolved.palette, terminal: resolved.terminal },
-                        null,
-                        2,
-                      ),
-                    );
-                  } catch (e) {
-                    alert(`导出失败: ${e}`);
-                  }
-                }}
-              >
-                ⇧ 导出主题
-              </button>
-              <button
-                className="btn btn-sm"
-                title="从当前主题克隆并编辑"
-                onClick={() => onOpenThemeEditor()}
-              >
-                ＋ 新建主题
-              </button>
-              <button
-                className="btn btn-sm"
-                title="从 JSON 文件导入主题"
-                onClick={async () => {
-                  const path = await dialogOpen({
-                    title: "导入主题",
+              <div className="theme-toolbar-btns">
+                <button
+                  className="btn btn-sm"
+                  title="从当前主题克隆并编辑"
+                  onClick={() => onOpenThemeEditor()}
+                >
+                  ＋ 新建主题
+                </button>
+                <button
+                  className="btn btn-sm"
+                  title="导出当前生效主题为 JSON 文件"
+                  onClick={async () => {
+                    const path = await dialogSave({
+                      title: "导出主题",
+                      defaultPath: `${resolved.name}.json`,
+                      filters: [{ name: "JSON", extensions: ["json"] }],
+                    });
+                    if (!path || Array.isArray(path)) return;
+                    try {
+                      await api.exportTheme(
+                        path,
+                        JSON.stringify(
+                          { name: resolved.name, type: resolved.type, palette: resolved.palette, terminal: resolved.terminal },
+                          null,
+                          2,
+                        ),
+                      );
+                    } catch (e) {
+                      alert(`导出失败: ${e}`);
+                    }
+                  }}
+                >
+                  ⇧ 导出主题
+                </button>
+                <button
+                  className="btn btn-sm"
+                  title="从 JSON 文件导入主题"
+                  onClick={async () => {
+                    const path = await dialogOpen({
+                      title: "导入主题",
                     multiple: false,
                     filters: [{ name: "JSON", extensions: ["json"] }],
                   });
@@ -148,6 +149,7 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
               >
                 ⇩ 导入主题
               </button>
+              </div>
             </div>
             <div className="theme-grid">
               {visibleThemes.map((t) => (
