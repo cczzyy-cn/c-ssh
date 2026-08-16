@@ -74,7 +74,7 @@ export default function TabBar() {
             onClick={() => setActive(t.id)}
             onMouseDown={(e) => onTabMouseDown(t.id, e)}
           >
-            <span className="tab-index">{i + 1}</span>
+            <span className="tab-index">{t.order ?? i + 1}</span>
             <span className={`status-dot ${t.status}`} />
             <span className="tab-title">{t.title}</span>
             <button

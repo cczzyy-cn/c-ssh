@@ -18,6 +18,8 @@ export interface Tab {
   autoReconnect?: boolean;
   /** 正在建立连接（尚无真实 sessionId） */
   pending?: boolean;
+  /** 固定编号（创建顺序，互换标签后保持不变，跟随连接身份） */
+  order?: number;
 }
 
 /** 单个连接的文件栏状态缓存（切换标签不重新拉取） */
@@ -157,15 +159,19 @@ export const useTabs = create<TabsState>((set, get) => ({
 }));
 
 /** 打开连接：先建 pending 占位 tab（立即反馈"正在连接"），成功后替换为真实会话。 */
+let nextOrder = 1;
+
 export async function openConnection(conn: ConnectionConfig): Promise<void> {
   const { addTab } = useTabs.getState();
   const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const order = nextOrder++;
   addTab({
     id: pendingId,
     connId: conn.id,
     title: conn.name,
     status: "connecting",
     pending: true,
+    order,
   });
   let sid: string;
   try {
@@ -200,7 +206,7 @@ export async function openConnection(conn: ConnectionConfig): Promise<void> {
 export async function openEcho(): Promise<void> {
   const { addTab, setStatus } = useTabs.getState();
   const sid = await api.openEchoSession();
-  addTab({ id: sid, title: "演示终端 (echo)", status: "connected" });
+  addTab({ id: sid, title: "演示终端 (echo)", status: "connected", order: nextOrder++ });
   setStatus(sid, "connected");
 }
 
@@ -213,6 +219,7 @@ export async function openLocalShell(): Promise<void> {
     title: "本地命令行",
     status: "connecting",
     pending: true,
+    order: nextOrder++,
   });
   let sid: string;
   try {
