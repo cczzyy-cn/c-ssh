@@ -268,8 +268,9 @@ select {
   border-right: 1px solid var(--color-border);
   color: var(--color-fg-dim);
   font-size: var(--ui-fs);
-  max-width: 220px;
-  min-width: 120px;
+  max-width: 240px;
+  min-width: 130px; /* 最小宽度：保证序号+状态点+标题可读 */
+  flex-shrink: 1;
   user-select: none;
 }
 

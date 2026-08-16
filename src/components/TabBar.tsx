@@ -61,7 +61,15 @@ export default function TabBar() {
 
   return (
     <div className="tabbar">
-      <div className="tabbar-tabs">
+      <div
+        className="tabbar-tabs"
+        onWheel={(e) => {
+          // 多标签溢出时：滚轮横向滚动
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.currentTarget.scrollLeft += e.deltaY;
+          }
+        }}
+      >
         {tabs.map((t, i) => (
           <div
             key={t.id}
