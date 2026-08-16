@@ -931,6 +931,10 @@ select {
   opacity: 0;
 }
 
+.theme-delete-del {
+  right: 26px;
+}
+
 .theme-card:hover .theme-delete {
   opacity: 1;
 }

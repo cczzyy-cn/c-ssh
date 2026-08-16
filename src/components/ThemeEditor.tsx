@@ -12,6 +12,8 @@ import { useTabs } from "../stores/tabs";
 
 interface Props {
   onClose: () => void;
+  /** 编辑已有主题时传入；否则从当前主题克隆新建 */
+  initial?: { name: string; type: "dark" | "light"; palette: Palette; terminal: Record<string, string> };
 }
 
 function ColorField({
@@ -78,20 +80,23 @@ const ANSI_FIELDS: { key: string; label: string }[] = [
   { key: "brightWhite", label: "brightWhite" },
 ];
 
-export default function ThemeEditor({ onClose }: Props) {
+export default function ThemeEditor({ onClose, initial }: Props) {
   const resolved = useTheme((s) => s.resolved);
-  const [name, setName] = useState(`${resolved.name} 副本`);
-  const [palette, setPalette] = useState<Palette>({ ...resolved.palette });
+  const [name, setName] = useState(initial?.name ?? `${resolved.name} 副本`);
+  const [palette, setPalette] = useState<Palette>({
+    ...(initial?.palette ?? resolved.palette),
+  });
   const [terminal, setTerminal] = useState<Record<string, string>>({
-    ...resolved.terminal,
+    ...(initial?.terminal ?? resolved.terminal),
   });
   const prevRef = useRef(resolved);
+  const themeType = initial?.type ?? resolved.type;
 
   // 实时预览：任何色值变化立即应用到 UI 与已打开的终端
   useEffect(() => {
     const tmp: ThemeDef = {
       name,
-      type: resolved.type,
+      type: themeType,
       palette,
       terminal,
     };
@@ -108,7 +113,7 @@ export default function ThemeEditor({ onClose }: Props) {
       }
     }
     getCurrentWindow()
-      .setTheme(resolved.type === "dark" ? "dark" : "light")
+      .setTheme(themeType === "dark" ? "dark" : "light")
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [palette, terminal]);
@@ -121,7 +126,7 @@ export default function ThemeEditor({ onClose }: Props) {
     }
     try {
       await api.saveUserTheme(
-        JSON.stringify({ name: n, type: resolved.type, palette, terminal }),
+        JSON.stringify({ name: n, type: themeType, palette, terminal }),
       );
       await useTheme.getState().loadUserThemes();
       useTheme.getState().setThemeName(n);

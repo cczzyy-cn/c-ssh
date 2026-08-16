@@ -43,8 +43,12 @@ function resolve(mode: ThemeMode, themeName: string): ResolvedTheme {
   if (mode === "system") {
     return getTheme(systemDark ? "默认暗色" : "默认亮色");
   }
-  if (mode === "dark") return getTheme(themeName) ?? getTheme("默认暗色");
-  // light 模式：若主题本身是暗色，回退到默认亮色
+  if (mode === "dark") {
+    // 深色模式：仅使用深色主题（所选主题为浅色时回退默认暗色）
+    const t = getTheme(themeName);
+    return t.type === "dark" ? t : getTheme("默认暗色");
+  }
+  // 浅色模式：仅使用浅色主题（所选主题为深色时回退默认亮色）
   const t = getTheme(themeName);
   return t.type === "light" ? t : getTheme("默认亮色");
 }

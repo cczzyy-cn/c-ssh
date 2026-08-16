@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { open as dialogOpen, confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
-import { getAllThemeDefs, isUserTheme } from "../themes";
+import { getAllThemeDefs, isUserTheme, type ThemeDef } from "../themes";
 import { useTheme, type ThemeMode } from "../stores/theme";
 import { useSettings, type WindowSize } from "../stores/settings";
 import { api } from "../ipc";
@@ -10,6 +10,11 @@ import ThemeEditor from "./ThemeEditor";
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { mode, setMode, setThemeName } = useTheme();
   const resolved = useTheme((s) => s.resolved);
+  const [editTheme, setEditTheme] = useState<ThemeDef | null>(null);
+  // 外观模式过滤：system 显示全部，dark/light 只显示对应类型的主题
+  const visibleThemes = getAllThemeDefs().filter(
+    (t) => mode === "system" || t.type === mode,
+  );
   const { fontSize, uiFontSize, setFontSize, setUiFontSize, windowSize, setWindowSize } = useSettings();
   const [sizeInput, setSizeInput] = useState<WindowSize>(windowSize);
   const [showLog, setShowLog] = useState(false);
@@ -115,7 +120,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               </button>
             </div>
             <div className="theme-grid">
-              {getAllThemeDefs().map((t) => (
+              {visibleThemes.map((t) => (
                 <div
                   key={t.name}
                   className={`theme-card ${t.name === resolved.name ? "selected" : ""} ${t.type}`}
@@ -132,22 +137,34 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   </div>
                   <div className="theme-name">{t.name}</div>
                   {isUserTheme(t.name) && (
-                    <button
-                      className="icon-btn theme-delete"
-                      title="删除此主题"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (!(await dialogConfirm(`确定删除主题「${t.name}」？`, { title: "删除确认", kind: "warning" }))) return;
-                        try {
-                          await api.deleteUserTheme(t.name);
-                          await useTheme.getState().loadUserThemes();
-                        } catch (err) {
-                          alert(`删除失败: ${err}`);
-                        }
-                      }}
-                    >
-                      ✕
-                    </button>
+                    <>
+                      <button
+                        className="icon-btn theme-delete"
+                        title="编辑此主题"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditTheme(t);
+                        }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        className="icon-btn theme-delete theme-delete-del"
+                        title="删除此主题"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!(await dialogConfirm(`确定删除主题「${t.name}」？`, { title: "删除确认", kind: "warning" }))) return;
+                          try {
+                            await api.deleteUserTheme(t.name);
+                            await useTheme.getState().loadUserThemes();
+                          } catch (err) {
+                            alert(`删除失败: ${err}`);
+                          }
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </>
                   )}
                 </div>
               ))}
@@ -171,7 +188,20 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {showLog && <LogViewer onClose={() => setShowLog(false)} />}
-        {showThemeEditor && <ThemeEditor onClose={() => setShowThemeEditor(false)} />}
+        {showThemeEditor && (
+          <ThemeEditor onClose={() => setShowThemeEditor(false)} />
+        )}
+        {editTheme && (
+          <ThemeEditor
+            initial={{
+              name: editTheme.name,
+              type: editTheme.type,
+              palette: editTheme.palette,
+              terminal: editTheme.terminal,
+            }}
+            onClose={() => setEditTheme(null)}
+          />
+        )}
       </div>
     </div>
   );
