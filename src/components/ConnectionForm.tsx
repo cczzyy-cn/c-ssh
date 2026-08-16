@@ -93,7 +93,9 @@ export default function ConnectionForm({ conn, onClose }: Props) {
             <input value={form.group} onChange={(e) => set("group", e.target.value)} placeholder="例如：生产环境" />
           </label>
           <label>
-            主机 * <span className="hint">IP 或域名</span>
+            <span className="label-row">
+              主机 * <span className="hint">IP 或域名</span>
+            </span>
             <input value={form.host} onChange={(e) => set("host", e.target.value)} placeholder="192.168.1.10" />
           </label>
           <label>
@@ -153,7 +155,7 @@ export default function ConnectionForm({ conn, onClose }: Props) {
           )}
 
           {authType === "agent" && (
-            <label className="span-2">
+            <label className="span-2 check-label">
               <input
                 type="checkbox"
                 checked={form.auth.useAgent ?? true}
@@ -200,7 +202,7 @@ export default function ConnectionForm({ conn, onClose }: Props) {
             <span className="hint">TCP 连接建立的最大等待时间（范围 3–60），超时快速报错不干等</span>
           </label>
 
-          <label className="span-2">
+          <label className="span-2 check-label">
             <input
               type="checkbox"
               checked={form.options.autoReconnect}

@@ -948,6 +948,22 @@ select {
   grid-column: span 2;
 }
 
+/* label 首行（文字+提示同行，避免 flex 拆行导致输入框错位） */
+.label-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* 勾选类 label：checkbox 与文字同行垂直居中 */
+.form-grid label.check-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-fg);
+  font-size: var(--ui-fs);
+}
+
 /* 连接编辑表单：内容多，加宽弹窗避免两列挤压 */
 .conn-modal {
   width: min(720px, 94vw);
