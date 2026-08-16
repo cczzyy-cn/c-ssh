@@ -1,7 +1,7 @@
 {
   "name": "c-ssh",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "轻量级跨平台 SSH 客户端",
   "scripts": {
