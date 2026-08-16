@@ -6,6 +6,8 @@ import { openConnection, openEcho } from "../stores/tabs";
 import type { ConnectionConfig } from "../types";
 import ConnectionForm from "./ConnectionForm";
 import SettingsPanel from "./SettingsPanel";
+import ThemeEditor from "./ThemeEditor";
+import type { ThemeDef } from "../themes";
 
 export default function Sidebar() {
   const { connections, remove, load } = useConnections();
@@ -13,6 +15,9 @@ export default function Sidebar() {
   const [editing, setEditing] = useState<ConnectionConfig | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  // 主题编辑器状态（打开时隐藏主设置弹窗）
+  const [themeEditorOpen, setThemeEditorOpen] = useState(false);
+  const [themeEdit, setThemeEdit] = useState<ThemeDef | null>(null);
   // 侧边栏宽度（可拖拽调整，持久化）
   const [width, setWidth] = useState(() => {
     try {
@@ -196,7 +201,28 @@ export default function Sidebar() {
           onClose={() => setShowForm(false)}
         />
       )}
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => setShowSettings(false)}
+          onOpenThemeEditor={(initial) => {
+            // 打开主题编辑器时隐藏主设置弹窗
+            setShowSettings(false);
+            setThemeEdit(initial ?? null);
+            setThemeEditorOpen(true);
+          }}
+        />
+      )}
+      {themeEditorOpen && (
+        <ThemeEditor
+          initial={themeEdit ?? undefined}
+          onClose={() => {
+            setThemeEditorOpen(false);
+            setThemeEdit(null);
+            // 关闭编辑器后回到设置
+            setShowSettings(true);
+          }}
+        />
+      )}
       {/* 拖拽调整侧边栏宽度 */}
       <div
         className="sidebar-resizer"

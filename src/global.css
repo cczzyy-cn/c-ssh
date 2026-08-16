@@ -762,6 +762,24 @@ select {
   width: min(620px, 92vw);
 }
 
+/* 固定标题：头部固定，内容区独立滚动 */
+.modal-fixed-header {
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+}
+
+.modal-fixed-header .modal-header {
+  flex-shrink: 0;
+}
+
+.modal-fixed-header .modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

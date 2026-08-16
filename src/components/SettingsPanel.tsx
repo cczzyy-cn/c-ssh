@@ -5,12 +5,16 @@ import { useTheme, type ThemeMode } from "../stores/theme";
 import { useSettings, type WindowSize } from "../stores/settings";
 import { api } from "../ipc";
 import LogViewer from "./LogViewer";
-import ThemeEditor from "./ThemeEditor";
 
-export default function SettingsPanel({ onClose }: { onClose: () => void }) {
+interface Props {
+  onClose: () => void;
+  /** 打开主题编辑器（新建不传 initial，编辑用户主题传 initial） */
+  onOpenThemeEditor: (initial?: ThemeDef) => void;
+}
+
+export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
   const { mode, setMode, setThemeName } = useTheme();
   const resolved = useTheme((s) => s.resolved);
-  const [editTheme, setEditTheme] = useState<ThemeDef | null>(null);
   // 外观模式过滤：system 显示全部，dark/light 只显示对应类型的主题
   const visibleThemes = getAllThemeDefs().filter(
     (t) => mode === "system" || t.type === mode,
@@ -19,7 +23,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [sizeInput, setSizeInput] = useState<WindowSize>(windowSize);
   const [showLog, setShowLog] = useState(false);
   const [logPath, setLogPath] = useState("");
-  const [showThemeEditor, setShowThemeEditor] = useState(false);
 
   useEffect(() => {
     api.getLogPath().then(setLogPath).catch(() => undefined);
@@ -27,12 +30,13 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-mask modal-mask-plain" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-settings">
+      <div className="modal modal-settings modal-fixed-header">
         <div className="modal-header">
           <h3>设置</h3>
           <button className="icon-btn" onClick={onClose}>✕</button>
         </div>
 
+        <div className="modal-body">
         <div className="form-grid">
           <label>
             终端字号
@@ -120,7 +124,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               <button
                 className="btn btn-sm"
                 title="从当前主题克隆并编辑"
-                onClick={() => setShowThemeEditor(true)}
+                onClick={() => onOpenThemeEditor()}
               >
                 ＋ 新建主题
               </button>
@@ -169,7 +173,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                         title="编辑此主题"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditTheme(t);
+                          onOpenThemeEditor(t);
                         }}
                       >
                         ✎
@@ -212,22 +216,9 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         </div>
+        </div>{/* modal-body 结束 */}
 
         {showLog && <LogViewer onClose={() => setShowLog(false)} />}
-        {showThemeEditor && (
-          <ThemeEditor onClose={() => setShowThemeEditor(false)} />
-        )}
-        {editTheme && (
-          <ThemeEditor
-            initial={{
-              name: editTheme.name,
-              type: editTheme.type,
-              palette: editTheme.palette,
-              terminal: editTheme.terminal,
-            }}
-            onClose={() => setEditTheme(null)}
-          />
-        )}
       </div>
     </div>
   );
