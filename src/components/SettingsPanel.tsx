@@ -26,7 +26,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-mask modal-mask-plain" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-settings">
         <div className="modal-header">
           <h3>设置</h3>

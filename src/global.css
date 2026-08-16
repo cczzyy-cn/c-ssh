@@ -717,6 +717,11 @@ select {
   z-index: 100;
 }
 
+/* 设置类弹窗（设置/主题编辑器/日志查看器）：不加黑蒙版 */
+.modal-mask-plain {
+  background: transparent;
+}
+
 .modal {
   width: min(520px, 92vw);
   max-height: 88vh;

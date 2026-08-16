@@ -182,7 +182,7 @@ export default function ThemeEditor({ onClose, initial }: Props) {
   };
 
   return (
-    <div className="modal-mask">
+    <div className="modal-mask modal-mask-plain">
       <div
         className="modal theme-editor"
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}

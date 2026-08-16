@@ -41,7 +41,7 @@ export default function LogViewer({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-mask modal-mask-plain" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal log-viewer">
         <div className="modal-header">
           <h3>错误日志</h3>
