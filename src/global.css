@@ -191,11 +191,7 @@ select {
   position: relative;
 }
 
-/* 拖拽：目标标签背景高亮（替代竖线） */
-.tab.drop-target {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
-}
-
+/* 拖拽中的标签半透明 */
 .tab.dragging {
   opacity: 0.5;
 }

@@ -4,7 +4,6 @@ import { openLocalShell, useTabs } from "../stores/tabs";
 export default function TabBar() {
   const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, swapTabs } = useTabs();
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
   const dragRef = useRef<{ id: string; startX: number; dragging: boolean } | null>(null);
   const activeTab = tabs.find((t) => t.id === activeId);
@@ -12,32 +11,7 @@ export default function TabBar() {
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
   const sftpVisible = canSftp && sftpOpen;
 
-  /** 计算拖拽目标：鼠标落在某个标签 rect 内即命中（含关闭按钮/内边距区域）；间隙则归最近标签 */
-  const calcDropIndex = (clientX: number): number => {
-    const list = useTabs.getState().tabs;
-    for (let i = 0; i < list.length; i++) {
-      const el = tabElsRef.current[list[i].id];
-      if (!el) continue;
-      const r = el.getBoundingClientRect();
-      if (clientX >= r.left && clientX <= r.right) return i;
-    }
-    // 落在标签间隙：归最近的标签
-    let best = list.length;
-    let bestDist = Infinity;
-    for (let i = 0; i < list.length; i++) {
-      const el = tabElsRef.current[list[i].id];
-      if (!el) continue;
-      const r = el.getBoundingClientRect();
-      const d = Math.min(Math.abs(clientX - r.left), Math.abs(clientX - r.right));
-      if (d < bestDist) {
-        bestDist = d;
-        best = i;
-      }
-    }
-    return best;
-  };
-
-  /** 鼠标拖拽排序标签（插入指示器方案：拖动过程不重排，松手一次移动，避免闪烁） */
+  /** 鼠标拖拽排序标签：实时互换（序号跟随），WebView2 兼容 */
   const onTabMouseDown = (id: string, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖拽
     e.preventDefault();
@@ -52,18 +26,21 @@ export default function TabBar() {
         setDraggingId(st.id);
         document.body.style.cursor = "grabbing";
       }
-      setDropIndex(calcDropIndex(ev.clientX));
+      // 实时互换：鼠标落在某个标签内（含关闭按钮/内边距）即与之交换，序号实时跟随
+      for (const tab of useTabs.getState().tabs) {
+        const el = tabElsRef.current[tab.id];
+        if (!el || tab.id === st.id) continue;
+        const r = el.getBoundingClientRect();
+        if (ev.clientX >= r.left && ev.clientX <= r.right) {
+          swapTabs(st.id, tab.id);
+          st.id = tab.id; // 拖拽的标签跟随到新位置
+          break;
+        }
+      }
     };
     const onUp = () => {
-      const st = dragRef.current;
-      if (st?.dragging && dropIndexRef.current !== null) {
-        // 互换策略：拖动标签与目标标签直接交换位置
-        const target = useTabs.getState().tabs[dropIndexRef.current];
-        if (target) swapTabs(st.id, target.id);
-      }
       dragRef.current = null;
       setDraggingId(null);
-      setDropIndex(null);
       document.body.style.cursor = "";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -71,16 +48,6 @@ export default function TabBar() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
-
-  // 供 onUp 读取最新的 dropIndex
-  const dropIndexRef = useRef<number | null>(null);
-  dropIndexRef.current = dropIndex;
-
-  // 拖拽目标标签：dropIndex 指向插入位置对应的标签（末尾无目标）
-  const dropTargetId =
-    dropIndex !== null && draggingId !== null && dropIndex < tabs.length
-      ? tabs[dropIndex].id
-      : null;
 
   return (
     <div className="tabbar">
@@ -93,7 +60,7 @@ export default function TabBar() {
             }}
             className={`tab ${t.id === activeId ? "active" : ""} ${t.status === "error" ? "error" : ""} ${
               t.id === draggingId ? "dragging" : ""
-            } ${t.id === dropTargetId ? "drop-target" : ""}`}
+            }`}
             onClick={() => setActive(t.id)}
             onMouseDown={(e) => onTabMouseDown(t.id, e)}
           >
@@ -115,7 +82,7 @@ export default function TabBar() {
       <div className="tabbar-right">
         <button
           className="icon-btn tabbar-term"
-          title="打开本地命令行（软件内）"
+          title="终端"
           onClick={() => openLocalShell().catch(() => undefined)}
         >
           &gt;_
