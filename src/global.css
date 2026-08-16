@@ -208,6 +208,15 @@ select {
   cursor: grabbing;
 }
 
+/* 标签序号 */
+.tab-index {
+  font-size: var(--ui-fs-xs);
+  color: var(--color-fg-dim);
+  flex-shrink: 0;
+  min-width: 14px;
+  text-align: center;
+}
+
 .tabbar-right {
   display: flex;
   align-items: center;

@@ -12,16 +12,29 @@ export default function TabBar() {
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
   const sftpVisible = canSftp && sftpOpen;
 
-  /** 计算拖拽插入位置：鼠标 x 相对各标签中点 */
+  /** 计算拖拽目标：鼠标落在某个标签 rect 内即命中（含关闭按钮/内边距区域）；间隙则归最近标签 */
   const calcDropIndex = (clientX: number): number => {
     const list = useTabs.getState().tabs;
     for (let i = 0; i < list.length; i++) {
       const el = tabElsRef.current[list[i].id];
       if (!el) continue;
       const r = el.getBoundingClientRect();
-      if (clientX < r.left + r.width / 2) return i;
+      if (clientX >= r.left && clientX <= r.right) return i;
     }
-    return list.length;
+    // 落在标签间隙：归最近的标签
+    let best = list.length;
+    let bestDist = Infinity;
+    for (let i = 0; i < list.length; i++) {
+      const el = tabElsRef.current[list[i].id];
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      const d = Math.min(Math.abs(clientX - r.left), Math.abs(clientX - r.right));
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    return best;
   };
 
   /** 鼠标拖拽排序标签（插入指示器方案：拖动过程不重排，松手一次移动，避免闪烁） */
@@ -72,7 +85,7 @@ export default function TabBar() {
   return (
     <div className="tabbar">
       <div className="tabbar-tabs">
-        {tabs.map((t) => (
+        {tabs.map((t, i) => (
           <div
             key={t.id}
             ref={(el) => {
@@ -84,6 +97,7 @@ export default function TabBar() {
             onClick={() => setActive(t.id)}
             onMouseDown={(e) => onTabMouseDown(t.id, e)}
           >
+            <span className="tab-index">{i + 1}</span>
             <span className={`status-dot ${t.status}`} />
             <span className="tab-title">{t.title}</span>
             <button
