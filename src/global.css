@@ -193,9 +193,14 @@ select {
 .tabbar-right {
   display: flex;
   align-items: center;
+  gap: 2px;
   padding: 0 8px;
   border-left: 1px solid var(--color-border);
   flex-shrink: 0;
+}
+
+.tabbar-action {
+  font-size: var(--ui-fs-lg);
 }
 
 .tabbar-file {
@@ -780,6 +785,12 @@ select {
   padding-right: 4px;
 }
 
+/* 固定标题弹窗的底部按钮固定 */
+.modal-fixed-header .modal-footer {
+  flex-shrink: 0;
+  padding-top: 10px;
+}
+
 /* 主题编辑器底部按钮固定 */
 .theme-editor-footer {
   flex-shrink: 0;
@@ -1069,7 +1080,8 @@ select {
 
 .theme-card.selected {
   border-color: var(--color-accent);
-  outline: 2px solid var(--color-accent);
+  /* 用 box-shadow 外扩替代 outline：不裁剪、不影响布局 */
+  box-shadow: 0 0 0 2px var(--color-accent);
 }
 
 .theme-swatches {

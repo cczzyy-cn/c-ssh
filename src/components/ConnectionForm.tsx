@@ -76,12 +76,13 @@ export default function ConnectionForm({ conn, onClose }: Props) {
 
   return (
     <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+      <div className="modal modal-fixed-header">
         <div className="modal-header">
           <h3>{isEdit ? "编辑连接" : "新建连接"}</h3>
           <button className="icon-btn" onClick={onClose}>✕</button>
         </div>
 
+        <div className="modal-body">
         <div className="form-grid">
           <label>
             名称 *
@@ -279,6 +280,7 @@ export default function ConnectionForm({ conn, onClose }: Props) {
           </label>
         </div>
 
+        </div>{/* modal-body 结束 */}
         <div className="modal-footer">
           <button className="btn" onClick={onClose} disabled={saving}>取消</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>

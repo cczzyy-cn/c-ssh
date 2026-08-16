@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from "react";
-import { open, save, confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
+import { confirm as dialogConfirm } from "@tauri-apps/plugin-dialog";
 import { api } from "../ipc";
 import { useConnections } from "../stores/connections";
-import { openConnection, openEcho } from "../stores/tabs";
+import { openConnection } from "../stores/tabs";
+import { useUi } from "../stores/ui";
 import type { ConnectionConfig } from "../types";
 import ConnectionForm from "./ConnectionForm";
 import SettingsPanel from "./SettingsPanel";
@@ -10,10 +11,9 @@ import ThemeEditor from "./ThemeEditor";
 import type { ThemeDef } from "../themes";
 
 export default function Sidebar() {
-  const { connections, remove, load } = useConnections();
+  const { connections, remove } = useConnections();
+  const { showForm, editingConn, openEditForm, closeForm } = useUi();
   const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<ConnectionConfig | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   // 主题编辑器状态（打开时隐藏主设置弹窗）
   const [themeEditorOpen, setThemeEditorOpen] = useState(false);
@@ -71,8 +71,7 @@ export default function Sidebar() {
   }, [connections, query]);
 
   const handleEdit = (conn: ConnectionConfig) => {
-    setEditing(conn);
-    setShowForm(true);
+    openEditForm(conn);
   };
 
   const handleDelete = async (conn: ConnectionConfig) => {
@@ -94,37 +93,6 @@ export default function Sidebar() {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const path = await save({
-        title: "导出连接配置",
-        defaultPath: "c-ssh-connections.json",
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (!path) return;
-      await api.exportConnections(path);
-      alert("导出成功（凭据不随文件导出，需在新机器重新输入密码）");
-    } catch (e) {
-      alert(`导出失败: ${e}`);
-    }
-  };
-
-  const handleImport = async () => {
-    try {
-      const path = await open({
-        title: "导入连接配置",
-        multiple: false,
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (!path || Array.isArray(path)) return;
-      const count = await api.importConnections(path);
-      await load();
-      alert(`导入成功：${count} 条连接`);
-    } catch (e) {
-      alert(`导入失败: ${e}`);
-    }
-  };
-
   return (
     <aside className={`sidebar ${dragging ? "resizing" : ""}`} style={{ width }}>
       <div className="sidebar-header">
@@ -134,13 +102,6 @@ export default function Sidebar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button
-          className="btn btn-primary btn-sm sidebar-new"
-          title="新建连接"
-          onClick={() => { setEditing(null); setShowForm(true); }}
-        >
-          + 新建
-        </button>
       </div>
 
       <div className="conn-list">
@@ -183,22 +144,15 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-footer">
-        <button className="btn btn-sm" onClick={() => openEcho().catch((e) => alert(e))}>
-          ▶ 演示终端
-        </button>
         <button className="btn btn-sm" onClick={() => setShowSettings(true)}>
           ⚙ 设置
         </button>
       </div>
-      <div className="sidebar-io">
-        <button className="btn btn-sm" onClick={handleImport}>⇩ 导入</button>
-        <button className="btn btn-sm" onClick={handleExport}>⇧ 导出</button>
-      </div>
 
       {showForm && (
         <ConnectionForm
-          conn={editing ?? undefined}
-          onClose={() => setShowForm(false)}
+          conn={editingConn ?? undefined}
+          onClose={closeForm}
         />
       )}
       {showSettings && (
