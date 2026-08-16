@@ -1,46 +1,84 @@
 import { useRef, useState } from "react";
 import { openLocalShell, useTabs } from "../stores/tabs";
 
+interface DragInfo {
+  id: string;
+  dx: number;
+  dy: number;
+  width: number;
+  dropIndex: number;
+}
+
 export default function TabBar() {
-  const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, swapTabs } = useTabs();
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const { tabs, activeId, sftpOpen, setActive, closeTab, setSftpOpen, moveTabToIndex } = useTabs();
+  const [dragInfo, setDragInfo] = useState<DragInfo | null>(null);
   const tabElsRef = useRef<Record<string, HTMLDivElement>>({});
-  const dragRef = useRef<{ id: string; startX: number; dragging: boolean } | null>(null);
+  const dragRef = useRef<{
+    id: string;
+    startX: number;
+    startY: number;
+    rectLeft: number;
+    rectTop: number;
+    width: number;
+    dragging: boolean;
+  } | null>(null);
   const activeTab = tabs.find((t) => t.id === activeId);
   // 仅真实连接会话可开关文件面板（无连接/连接中/演示会话禁用）
   const canSftp = !!activeTab?.connId && !activeTab.pending && activeTab.status === "connected";
   const sftpVisible = canSftp && sftpOpen;
 
-  /** 鼠标拖拽排序标签：实时互换（序号跟随），WebView2 兼容 */
+  /** 计算拖拽目标位置（鼠标落在标签 rect 内即命中） */
+  const calcDropIndex = (clientX: number): number => {
+    const list = useTabs.getState().tabs;
+    for (let i = 0; i < list.length; i++) {
+      const el = tabElsRef.current[list[i].id];
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right) return i;
+    }
+    return list.length;
+  };
+
+  /** 鼠标拖拽：原始标签不动（不闪烁），浮动幽灵标签跟随并实时显示目标序号，松手一次移动 */
   const onTabMouseDown = (id: string, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return; // 关闭按钮不触发拖拽
     e.preventDefault();
-    dragRef.current = { id, startX: e.clientX, dragging: false };
+    const el = tabElsRef.current[id];
+    const rect = el?.getBoundingClientRect();
+    if (!rect) return;
+    dragRef.current = {
+      id,
+      startX: e.clientX,
+      startY: e.clientY,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      width: rect.width,
+      dragging: false,
+    };
 
     const onMove = (ev: MouseEvent) => {
       const st = dragRef.current;
       if (!st) return;
       if (!st.dragging) {
-        if (Math.abs(ev.clientX - st.startX) < 5) return; // 位移阈值
+        if (Math.abs(ev.clientX - st.startX) < 5 && Math.abs(ev.clientY - st.startY) < 5) return;
         st.dragging = true;
-        setDraggingId(st.id);
         document.body.style.cursor = "grabbing";
       }
-      // 实时互换：鼠标落在某个标签内（含关闭按钮/内边距）即与之交换，序号实时跟随
-      for (const tab of useTabs.getState().tabs) {
-        const el = tabElsRef.current[tab.id];
-        if (!el || tab.id === st.id) continue;
-        const r = el.getBoundingClientRect();
-        if (ev.clientX >= r.left && ev.clientX <= r.right) {
-          swapTabs(st.id, tab.id);
-          st.id = tab.id; // 拖拽的标签跟随到新位置
-          break;
-        }
-      }
+      setDragInfo({
+        id: st.id,
+        dx: ev.clientX - st.rectLeft,
+        dy: ev.clientY - st.rectTop,
+        width: st.width,
+        dropIndex: calcDropIndex(ev.clientX),
+      });
     };
     const onUp = () => {
+      const st = dragRef.current;
+      if (st?.dragging && dragInfoRef.current) {
+        moveTabToIndex(st.id, dragInfoRef.current.dropIndex);
+      }
       dragRef.current = null;
-      setDraggingId(null);
+      setDragInfo(null);
       document.body.style.cursor = "";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -48,6 +86,12 @@ export default function TabBar() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
+
+  const dragInfoRef = useRef<DragInfo | null>(null);
+  dragInfoRef.current = dragInfo;
+
+  // 幽灵标签内容
+  const ghostTab = dragInfo ? tabs.find((t) => t.id === dragInfo.id) : null;
 
   return (
     <div className="tabbar">
@@ -59,7 +103,7 @@ export default function TabBar() {
               if (el) tabElsRef.current[t.id] = el;
             }}
             className={`tab ${t.id === activeId ? "active" : ""} ${t.status === "error" ? "error" : ""} ${
-              t.id === draggingId ? "dragging" : ""
+              dragInfo && t.id === dragInfo.id ? "dragging" : ""
             }`}
             onClick={() => setActive(t.id)}
             onMouseDown={(e) => onTabMouseDown(t.id, e)}
@@ -78,6 +122,19 @@ export default function TabBar() {
             </button>
           </div>
         ))}
+        {ghostTab && dragInfo && (
+          <div
+            className="tab tab-ghost"
+            style={{
+              transform: `translate(${dragInfo.dx}px, ${dragInfo.dy}px)`,
+              width: dragInfo.width,
+            }}
+          >
+            <span className="tab-index">{dragInfo.dropIndex + 1}</span>
+            <span className={`status-dot ${ghostTab.status}`} />
+            <span className="tab-title">{ghostTab.title}</span>
+          </div>
+        )}
       </div>
       <div className="tabbar-right">
         <button
