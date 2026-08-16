@@ -5,6 +5,7 @@ import { useTheme, type ThemeMode } from "../stores/theme";
 import { useSettings, type WindowSize } from "../stores/settings";
 import { api } from "../ipc";
 import LogViewer from "./LogViewer";
+import ThemeEditor from "./ThemeEditor";
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { mode, setMode, setThemeName } = useTheme();
@@ -13,6 +14,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [sizeInput, setSizeInput] = useState<WindowSize>(windowSize);
   const [showLog, setShowLog] = useState(false);
   const [logPath, setLogPath] = useState("");
+  const [showThemeEditor, setShowThemeEditor] = useState(false);
 
   useEffect(() => {
     api.getLogPath().then(setLogPath).catch(() => undefined);
@@ -84,6 +86,13 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           <div className="span-2">
             <div className="theme-toolbar">
               <div className="group-title" style={{ padding: 0 }}>选择主题</div>
+              <button
+                className="btn btn-sm"
+                title="从当前主题克隆并编辑"
+                onClick={() => setShowThemeEditor(true)}
+              >
+                ＋ 新建主题
+              </button>
               <button
                 className="btn btn-sm"
                 title="从 JSON 文件导入主题"
@@ -162,6 +171,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {showLog && <LogViewer onClose={() => setShowLog(false)} />}
+        {showThemeEditor && <ThemeEditor onClose={() => setShowThemeEditor(false)} />}
       </div>
     </div>
   );
