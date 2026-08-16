@@ -648,15 +648,18 @@ select {
 
 .sidebar-footer {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 10px;
   border-top: 1px solid var(--color-border);
 }
 
-.sidebar-io {
-  display: flex;
-  gap: 8px;
-  padding: 0 10px 10px;
+.sidebar-footer .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- 按钮 ---- */
