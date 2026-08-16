@@ -192,8 +192,7 @@ export async function openConnection(conn: ConnectionConfig): Promise<void> {
           : t,
       ),
       activeId: s.activeId === pendingId ? sid : s.activeId,
-      // 连接成功后默认显示右侧文件栏（全局开关）
-      sftpOpen: true,
+      // 文件栏不随连接/切换自动打开，由用户通过 📁 按钮手动控制
     };
   });
 }
