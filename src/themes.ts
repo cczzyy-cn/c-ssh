@@ -51,16 +51,19 @@ export function deriveUi(p: Palette, overrides?: Record<string, string>): Record
   return { ...ui, ...overrides };
 }
 
-/** palette → xterm 基础色（背景/前景/光标）；ANSI 16 由主题 terminal 提供或回退默认 */
+/** palette → xterm 基础色（背景/前景/光标/选区由 palette 派生，优先于主题自带值）；
+ *  ANSI 16 色保留主题自带（或回退默认）。 */
 export function deriveTerminal(p: Palette, t?: Record<string, string>): Record<string, string> {
-  const base: Record<string, string> = {
+  const custom = t ?? {};
+  return {
+    ...custom,
+    // 基础色跟随 palette：改背景/前景/选区色时终端内容同步变化
     background: p.bg,
     foreground: p.fg,
     cursor: p.fg,
     cursorAccent: p.bg,
     selectionBackground: p.selection,
   };
-  return { ...base, ...t };
 }
 
 const DARK_PALETTE: Palette = {
