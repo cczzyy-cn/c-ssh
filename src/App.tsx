@@ -35,8 +35,13 @@ export default function App() {
       if (!e.ctrlKey || (e.key !== "Tab" && e.code !== "Tab")) return;
       e.preventDefault();
       e.stopPropagation();
-      const { tabs, activeId, setActive } = useTabs.getState();
+      const { tabs, activeId, lastActiveId, setActive } = useTabs.getState();
       if (tabs.length < 2) return; // 没有下一个，无操作
+      // MRU 优先：切回上一个激活的标签（3↔4 来回切换）
+      if (lastActiveId && tabs.some((t) => t.id === lastActiveId)) {
+        setActive(lastActiveId);
+        return;
+      }
       const idx = tabs.findIndex((t) => t.id === activeId);
       if (idx > 0) {
         setActive(tabs[idx - 1].id); // 有上一个：切回上一个

@@ -35,6 +35,8 @@ const PENDING_DATA_MAX = 64;
 interface TabsState {
   tabs: Tab[];
   activeId: string | null;
+  /** MRU：上一次激活的标签 id（Ctrl+Tab 来回切换用） */
+  lastActiveId: string | null;
   /** sessionId -> xterm Terminal 实例（供全局 term:data 分发） */
   terminals: Record<string, Terminal>;
   /** sessionId -> 终端未注册前到达的数据缓冲（注册后回放） */
@@ -63,6 +65,7 @@ interface TabsState {
 export const useTabs = create<TabsState>((set, get) => ({
   tabs: [],
   activeId: null,
+  lastActiveId: null,
   terminals: {},
   pendingData: {},
   sftpOpen: false,
@@ -93,7 +96,11 @@ export const useTabs = create<TabsState>((set, get) => ({
       };
     });
   },
-  setActive: (id) => set({ activeId: id }),
+  setActive: (id) =>
+    set((s) => {
+      if (s.activeId === id) return s;
+      return { activeId: id, lastActiveId: s.activeId };
+    }),
   setStatus: (id, status, error) =>
     set((s) => ({
       tabs: s.tabs.map((t) => (t.id === id ? { ...t, status, error } : t)),
