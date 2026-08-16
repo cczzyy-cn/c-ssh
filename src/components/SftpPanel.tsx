@@ -45,6 +45,7 @@ export default function SftpPanel({ tab }: Props) {
   const setSftpState = useTabs((s) => s.setSftpState);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [op, setOp] = useState<string | null>(null);
   // 文件栏宽度（可拖拽调整，持久化）
   const [width, setWidth] = useState(() => {
     try {
@@ -148,6 +149,7 @@ export default function SftpPanel({ tab }: Props) {
     if (!local) return;
     const files = Array.isArray(local) ? local : [local];
     setBusy(true);
+    setOp(`上传中…（${files.length} 个文件）`);
     try {
       for (const f of files) {
         const name = f.split(/[\\/]/).pop() ?? "file";
@@ -158,6 +160,7 @@ export default function SftpPanel({ tab }: Props) {
       alert(`上传失败: ${e}`);
     } finally {
       setBusy(false);
+      setOp(null);
     }
   };
 
@@ -180,12 +183,14 @@ export default function SftpPanel({ tab }: Props) {
       }
     }
     setBusy(true);
+    setOp(`下载中…（${entry.name}）`);
     try {
       await api.sftpDownload(tab.id, joinPath(path, entry.name), target);
     } catch (e) {
       alert(`下载失败: ${e}`);
     } finally {
       setBusy(false);
+      setOp(null);
     }
   };
 
@@ -193,11 +198,16 @@ export default function SftpPanel({ tab }: Props) {
     if (!path) return;
     const name = prompt("新建目录名称");
     if (!name) return;
+    setBusy(true);
+    setOp("创建目录中…");
     try {
       await api.sftpMkdir(tab.id, joinPath(path, name));
       await refresh(path);
     } catch (e) {
       alert(`创建目录失败: ${e}`);
+    } finally {
+      setBusy(false);
+      setOp(null);
     }
   };
 
@@ -208,11 +218,16 @@ export default function SftpPanel({ tab }: Props) {
       kind: "warning",
     });
     if (!ok) return;
+    setBusy(true);
+    setOp("删除中…");
     try {
       await api.sftpDelete(tab.id, joinPath(path, entry.name), entry.isDir);
       await refresh(path);
     } catch (e) {
       alert(`删除失败: ${e}`);
+    } finally {
+      setBusy(false);
+      setOp(null);
     }
   };
 
@@ -234,6 +249,12 @@ export default function SftpPanel({ tab }: Props) {
           placeholder={path ? undefined : "正在解析主目录…"}
         />
       </div>
+      {op && (
+        <div className="sftp-op-tip">
+          <span className="sftp-op-spinner" />
+          <span>{op}</span>
+        </div>
+      )}
       <div className="sftp-tools">
         <button className="btn btn-sm" onClick={handleUpload} disabled={busy}>上传</button>
         <button className="btn btn-sm" onClick={handleMkdir}>新建目录</button>

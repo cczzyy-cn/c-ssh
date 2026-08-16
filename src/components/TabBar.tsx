@@ -11,7 +11,20 @@ export default function TabBar() {
 
   return (
     <div className="tabbar">
-      <div className="tabbar-tabs">
+      <div
+        className="tabbar-tabs"
+        onDragOver={(e) => {
+          // 允许在标签区空白处放置（拖到末尾），避免出现禁止图标
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const fromId = e.dataTransfer.getData("text/plain") || dragIdRef.current;
+          dragIdRef.current = null;
+          if (fromId && tabs.length) moveTab(fromId, tabs[tabs.length - 1].id);
+        }}
+      >
         {tabs.map((t) => (
           <div
             key={t.id}
