@@ -1,6 +1,6 @@
 [package]
 name = "c-ssh"
-version = "0.2.1"
+version = "0.2.2"
 description = "轻量级跨平台 SSH 客户端"
 authors = ["c-ssh"]
 edition = "2021"

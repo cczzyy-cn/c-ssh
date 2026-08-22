@@ -66,13 +66,13 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
               <input
                 type="number"
                 value={sizeInput.width}
-                onChange={(e) => setSizeInput((s) => ({ ...s, width: Number(e.target.value) || 1100 }))}
+                onChange={(e) => setSizeInput((s) => ({ ...s, width: Number(e.target.value) || 1600 }))}
               />
               <span className="size-x">×</span>
               <input
                 type="number"
                 value={sizeInput.height}
-                onChange={(e) => setSizeInput((s) => ({ ...s, height: Number(e.target.value) || 700 }))}
+                onChange={(e) => setSizeInput((s) => ({ ...s, height: Number(e.target.value) || 800 }))}
               />
             </div>
             <div className="log-actions" style={{ marginTop: 4 }}>

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "c-ssh",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "identifier": "com.cssh.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "c-ssh",
-        "width": 1100,
-        "height": 700,
+        "width": 1600,
+        "height": 800,
         "minWidth": 800,
         "minHeight": 500,
         "decorations": false,

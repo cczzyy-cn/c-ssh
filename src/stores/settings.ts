@@ -7,7 +7,7 @@ export interface WindowSize {
   height: number;
 }
 
-export const DEFAULT_WINDOW_SIZE: WindowSize = { width: 1100, height: 700 };
+export const DEFAULT_WINDOW_SIZE: WindowSize = { width: 1600, height: 800 };
 
 interface SettingsState {
   fontSize: number;
