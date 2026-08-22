@@ -167,7 +167,7 @@ export const BUILTIN_THEMES: ThemeDef[] = [
       ...LIGHT_PALETTE,
       bg: "#fdf6e3", bgAlt: "#eee8d5", bgInput: "#eee8d5",
       fg: "#586e75", fgDim: "#839496", accent: "#268bd2",
-      border: "#eee8d5", hover: "#f2ecdd", selection: "#eee8d5",
+      border: "#d5cfbd", divider: "#e6e0cf", hover: "#e9e3d1", selection: "#dfd9c6",
     },
     terminal: {
       black: "#073642", red: "#dc322f", green: "#859900", yellow: "#b58900",
