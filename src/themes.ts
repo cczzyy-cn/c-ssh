@@ -79,7 +79,7 @@ const DARK_PALETTE: Palette = {
   accentFg: "#ffffff",
   border: "#383a3f",
   divider: "#2e3035",
-  hover: "#2c2e33",
+  hover: "#3a3d43",
   selection: "#3b4a5a",
   danger: "#e5534b",
   success: "#3fb950",
@@ -118,7 +118,7 @@ export const BUILTIN_THEMES: ThemeDef[] = [
       fgDim: "#7f848e",
       accent: "#61afef",
       border: "#3e4451",
-      hover: "#2c313a",
+      hover: "#3a4048",
       selection: "#3e4451",
     },
     terminal: {
@@ -135,7 +135,7 @@ export const BUILTIN_THEMES: ThemeDef[] = [
       ...DARK_PALETTE,
       bg: "#282a36", bgAlt: "#21222c", bgInput: "#343746",
       fg: "#f8f8f2", fgDim: "#9096ad", accent: "#bd93f9",
-      border: "#44475a", hover: "#343746", selection: "#44475a",
+      border: "#44475a", hover: "#3f4458", selection: "#44475a",
     },
     terminal: {
       black: "#21222c", red: "#ff5555", green: "#50fa7b", yellow: "#f1fa8c",
@@ -151,7 +151,7 @@ export const BUILTIN_THEMES: ThemeDef[] = [
       ...DARK_PALETTE,
       bg: "#2e3440", bgAlt: "#272c36", bgInput: "#3b4252",
       fg: "#d8dee9", fgDim: "#7b88a1", accent: "#88c0d0",
-      border: "#434c5e", hover: "#3b4252", selection: "#434c5e",
+      border: "#434c5e", hover: "#424c5e", selection: "#434c5e",
     },
     terminal: {
       black: "#3b4252", red: "#bf616a", green: "#a3be8c", yellow: "#ebcb8b",
@@ -167,7 +167,7 @@ export const BUILTIN_THEMES: ThemeDef[] = [
       ...LIGHT_PALETTE,
       bg: "#fdf6e3", bgAlt: "#eee8d5", bgInput: "#eee8d5",
       fg: "#586e75", fgDim: "#839496", accent: "#268bd2",
-      border: "#eee8d5", hover: "#eee8d5", selection: "#eee8d5",
+      border: "#eee8d5", hover: "#f2ecdd", selection: "#eee8d5",
     },
     terminal: {
       black: "#073642", red: "#dc322f", green: "#859900", yellow: "#b58900",
