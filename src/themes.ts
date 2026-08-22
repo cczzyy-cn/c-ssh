@@ -161,22 +161,6 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     },
   },
   {
-    name: "Solarized Dark",
-    type: "dark",
-    palette: {
-      ...DARK_PALETTE,
-      bg: "#002b36", bgAlt: "#073642", bgInput: "#073642",
-      fg: "#839496", fgDim: "#586e75", accent: "#268bd2",
-      border: "#073642", hover: "#073642", selection: "#073642",
-    },
-    terminal: {
-      black: "#073642", red: "#dc322f", green: "#859900", yellow: "#b58900",
-      blue: "#268bd2", magenta: "#d33682", cyan: "#2aa198", white: "#eee8d5",
-      brightBlack: "#586e75", brightRed: "#cb4b16", brightGreen: "#859900", brightYellow: "#b58900",
-      brightBlue: "#268bd2", brightMagenta: "#d33682", brightCyan: "#2aa198", brightWhite: "#fdf6e3",
-    },
-  },
-  {
     name: "Solarized Light",
     type: "light",
     palette: {
@@ -190,22 +174,6 @@ export const BUILTIN_THEMES: ThemeDef[] = [
       blue: "#268bd2", magenta: "#d33682", cyan: "#2aa198", white: "#eee8d5",
       brightBlack: "#002b36", brightRed: "#cb4b16", brightGreen: "#859900", brightYellow: "#b58900",
       brightBlue: "#268bd2", brightMagenta: "#d33682", brightCyan: "#2aa198", brightWhite: "#fdf6e3",
-    },
-  },
-  {
-    name: "Gruvbox Dark",
-    type: "dark",
-    palette: {
-      ...DARK_PALETTE,
-      bg: "#282828", bgAlt: "#1d2021", bgInput: "#3c3836",
-      fg: "#ebdbb2", fgDim: "#928374", accent: "#fabd2f",
-      border: "#3c3836", hover: "#3c3836", selection: "#3c3836",
-    },
-    terminal: {
-      black: "#282828", red: "#cc241d", green: "#98971a", yellow: "#d79921",
-      blue: "#458588", magenta: "#b16286", cyan: "#689d6a", white: "#a89984",
-      brightBlack: "#928374", brightRed: "#fb4934", brightGreen: "#b8bb26", brightYellow: "#fabd2f",
-      brightBlue: "#83a598", brightMagenta: "#d3869b", brightCyan: "#8ec07c", brightWhite: "#ebdbb2",
     },
   },
   {
