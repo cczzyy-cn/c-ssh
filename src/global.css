@@ -54,6 +54,15 @@ select {
   user-select: text;
 }
 
+/* 按钮：鼠标点击不残留焦点环（仅键盘 Tab 聚焦显示，保持可访问性） */
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
 /* 默认组件去掉系统背景色：勾选/单选/滑块用主题强调色 */
 input[type="checkbox"],
 input[type="radio"],
