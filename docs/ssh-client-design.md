@@ -54,7 +54,7 @@ xterm.js (前端)  ←─ Channel 事件 ──  Tauri 主进程 (Rust)
 - 转义键（Ctrl+C 等）、常见交互终端（vim、htop、tmux）正常渲染
 
 **主题**
-- 内置 6+ 主题（One Dark、Dracula、Nord、Solarized Dark/Light、Gruvbox）
+- 内置 6 套主题（One Dark、Dracula、Nord、Solarized Light、默认暗色、默认亮色）
 - 亮 / 暗 / 跟随系统（`prefers-color-scheme`）三档
 - 主题同时作用于 UI（CSS 变量）与终端（xterm.js ANSI 16 色）
 - 每个连接可单独覆盖主题
