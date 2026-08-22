@@ -1027,6 +1027,16 @@ input[type="number"] {
   gap: 10px;
 }
 
+/* 非表单输入字段（如字号调节按钮组）：与 form-grid label 相同外观，但不做 label 关联 */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--ui-fs-sm);
+  color: var(--color-fg-dim);
+  min-width: 0;
+}
+
 .log-path {
   word-break: break-all;
   margin: 2px 0 6px;

@@ -40,25 +40,25 @@ export default function SettingsPanel({ onClose, onOpenThemeEditor }: Props) {
 
         <div className="modal-body">
         <div className="form-grid">
-          <label>
-            终端字号
+          <div className="form-field">
+            <span>终端字号</span>
             <div className="font-size-row">
               <button className="btn btn-sm" onClick={() => setFontSize(fontSize - 1)}>−</button>
               <span className="font-size-value">{fontSize} px</span>
               <button className="btn btn-sm" onClick={() => setFontSize(fontSize + 1)}>+</button>
             </div>
             <span className="hint">也可在终端内按 Ctrl+= / Ctrl+- 调整</span>
-          </label>
+          </div>
 
-          <label>
-            界面字号（字体与图标）
+          <div className="form-field">
+            <span>界面字号（字体与图标）</span>
             <div className="font-size-row">
               <button className="btn btn-sm" onClick={() => setUiFontSize(uiFontSize - 1)}>−</button>
               <span className="font-size-value">{uiFontSize} px</span>
               <button className="btn btn-sm" onClick={() => setUiFontSize(uiFontSize + 1)}>+</button>
             </div>
             <span className="hint">作用于侧边栏/标签栏/文件栏/表单等全部界面</span>
-          </label>
+          </div>
 
           <label>
             窗口大小（宽 × 高）

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { api } from "../ipc";
 import { useConnections } from "../stores/connections";
-import { BUILTIN_THEMES } from "../themes";
 import { emptyConnection, type AuthType, type ConnectionConfig } from "../types";
 
 interface Props {
@@ -164,19 +163,6 @@ export default function ConnectionForm({ conn, onClose }: Props) {
               使用系统 SSH Agent
             </label>
           )}
-
-          <label className="span-2">
-            主题（默认跟随全局）
-            <select
-              value={form.theme ?? ""}
-              onChange={(e) => set("theme", e.target.value || undefined)}
-            >
-              <option value="">跟随全局设置</option>
-              {BUILTIN_THEMES.map((t) => (
-                <option key={t.name} value={t.name}>{t.name}</option>
-              ))}
-            </select>
-          </label>
 
           <label className="span-2">
             高级：Keep-Alive 间隔（秒）
